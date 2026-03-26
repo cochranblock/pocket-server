@@ -1,0 +1,31 @@
+# Unlicense — cochranblock.org
+# Contributors: GotEmCoach, KOVA, Claude Opus 4.6
+
+[package]
+name = "pocket-server"
+version = "0.1.0"
+edition = "2024"
+description = "Your website lives on your phone. No hosting bill. Ever."
+license = "Unlicense"
+repository = "https://github.com/cochranblock/pocket-server"
+homepage = "https://cochranblock.org"
+
+[lib]
+name = "pocket_server"
+crate-type = ["cdylib"]
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+rust-embed = "8"
+tower-http = { version = "0.5", features = ["compression-zstd"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+jni = "0.22"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
