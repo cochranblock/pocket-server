@@ -7,6 +7,7 @@
 use jni::objects::{JClass, JString};
 use jni::sys::jstring;
 use jni::JNIEnv;
+use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
@@ -25,16 +26,23 @@ fn get_runtime() -> &'static Runtime {
     })
 }
 
-/// Called from Java: PocketServer.startServer(siteName, port)
+/// Called from Java: PocketServer.startServer(siteName, port, siteDir)
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServer(
     mut env: JNIEnv,
     _class: JClass,
     site_name: JString,
     port: jni::sys::jint,
+    site_dir: JString,
 ) {
     let site_name: String = env.get_string(&site_name).unwrap().into();
     let port = port as u16;
+    let dir_str: String = env.get_string(&site_dir).unwrap().into();
+    let site_dir = if dir_str.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(dir_str))
+    };
 
     let stats = std::sync::Arc::new(Stats::new());
     let _ = STATS.set(stats.clone());
@@ -43,8 +51,9 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
     rt.spawn(async move {
         let state = crate::server::AppState {
             stats,
-            site_name: site_name.clone(),
+            site_name,
             hostname: "pocket-server".into(),
+            site_dir,
         };
         let app = crate::server::build_router(state);
         let addr = format!("0.0.0.0:{}", port);

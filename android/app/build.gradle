@@ -1,0 +1,70 @@
+// Unlicense — cochranblock.org
+// Contributors: GotEmCoach, KOVA, Claude Opus 4.6
+
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'org.cochranblock.pocketserver'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'org.cochranblock.pocketserver'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    // NDK: cargo-ndk builds libpocket_server.so into jniLibs
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Cross-compile Rust via cargo-ndk before the Android build
+// ---------------------------------------------------------------------------
+// Requires: cargo install cargo-ndk
+//           rustup target add aarch64-linux-android armv7-linux-androideabi
+//
+// The task builds the .so for each ABI and copies it into jniLibs/.
+// Run: ./gradlew assembleRelease
+// ---------------------------------------------------------------------------
+
+def rustTargets = [
+    'arm64-v8a'  : 'aarch64-linux-android',
+    'armeabi-v7a': 'armv7-linux-androideabi',
+]
+
+task cargoNdkBuild {
+    description 'Cross-compile Rust library for Android via cargo-ndk'
+    doLast {
+        rustTargets.each { abi, target ->
+            def outDir = file("src/main/jniLibs/${abi}")
+            outDir.mkdirs()
+            exec {
+                workingDir rootProject.file('..')
+                commandLine 'cargo', 'ndk',
+                    '--target', target,
+                    '--platform', '26',
+                    '--', 'build', '--release'
+            }
+            copy {
+                from rootProject.file("../target/${target}/release/libpocket_server.so")
+                into outDir
+            }
+        }
+    }
+}
+
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('JniLibFolders') }.configureEach {
+    dependsOn cargoNdkBuild
+}

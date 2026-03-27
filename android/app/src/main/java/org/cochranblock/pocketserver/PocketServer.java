@@ -12,6 +12,12 @@ public class PocketServer {
         System.loadLibrary("pocket_server");
     }
 
-    public static native void startServer(String siteName, int port);
+    /**
+     * Start the server.
+     * @param siteName display name for the site
+     * @param port     TCP port to bind
+     * @param siteDir  path to site files on storage, or "" for default landing page
+     */
+    public static native void startServer(String siteName, int port, String siteDir);
     public static native String getStats();
 }

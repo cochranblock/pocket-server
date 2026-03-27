@@ -1,0 +1,3 @@
+// Unlicense — cochranblock.org
+rootProject.name = 'pocket-server'
+include ':app'
