@@ -58,7 +58,12 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
         let app = crate::server::build_router(state);
         let addr = format!("0.0.0.0:{}", port);
         let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-        axum::serve(listener, app).await.unwrap();
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        )
+        .await
+        .unwrap();
     });
 }
 

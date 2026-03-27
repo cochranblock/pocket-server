@@ -38,10 +38,11 @@ pub async fn start(port: u16) {
                 let url = &line[pos..];
                 // Trim trailing whitespace or pipe chars
                 let url = url.split_whitespace().next().unwrap_or(url);
+                let pad = url.len() + 4;
                 eprintln!();
-                eprintln!("  ┌─────────────────────────────────────────┐");
-                eprintln!("  │  PUBLIC URL: {}  │", url);
-                eprintln!("  └─────────────────────────────────────────┘");
+                eprintln!("  ┌{}┐", "─".repeat(pad));
+                eprintln!("  │  {}  │", url);
+                eprintln!("  └{}┘", "─".repeat(pad));
                 eprintln!();
                 // Keep reading to prevent buffer fill, but stop printing
                 while let Ok(Some(_)) = lines.next_line().await {}

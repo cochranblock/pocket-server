@@ -12,6 +12,12 @@ pub struct Stats {
     pub bytes_served: AtomicU64,
 }
 
+impl Default for Stats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Stats {
     pub fn new() -> Self {
         Self {

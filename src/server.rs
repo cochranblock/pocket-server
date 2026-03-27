@@ -5,12 +5,13 @@
 //! kiosk dashboard for the phone screen, stats API.
 
 use axum::{
-    extract::{Multipart, Request, State},
+    extract::{ConnectInfo, Multipart, Request, State},
     http::StatusCode,
     response::{Html, IntoResponse, Response},
     routing::{get, post},
     Router,
 };
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tower_http::compression::CompressionLayer;
@@ -148,12 +149,16 @@ async fn health() -> &'static str {
     "OK"
 }
 
-/// Upload files to the site directory.
-/// POST /api/upload with multipart/form-data — field name "file", optional "path" for subdirs.
+/// Upload files to the site directory. Localhost only.
+/// POST /api/upload with multipart/form-data.
 async fn upload(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
+    if !addr.ip().is_loopback() {
+        return (StatusCode::FORBIDDEN, "upload restricted to localhost".to_string());
+    }
     let base = match &state.site_dir {
         Some(d) => d.clone(),
         None => return (StatusCode::BAD_REQUEST, "no site directory configured".to_string()),
@@ -166,8 +171,16 @@ async fn upload(
             None => continue,
         };
 
-        // Sanitize: no path traversal
-        let clean = file_name.replace("..", "").replace('\\', "/");
+        // Sanitize: strip path components, keep only the filename
+        let clean: String = file_name
+            .replace('\\', "/")
+            .rsplit('/')
+            .next()
+            .unwrap_or("")
+            .to_string();
+        if clean.is_empty() || clean == "." || clean == ".." {
+            continue;
+        }
         let dest = base.join(&clean);
 
         if let Some(parent) = dest.parent() {
@@ -251,5 +264,10 @@ pub async fn run(site_name: String, hostname: String, port: u16, site_dir: Optio
     let app = build_router(state);
     let addr = format!("0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
