@@ -6,53 +6,65 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
-pub struct Stats {
-    pub start: Instant,
-    pub requests: AtomicU64,
-    pub bytes_served: AtomicU64,
+/// t1=Stats — live request/byte/uptime tracker
+#[allow(non_camel_case_types)]
+pub struct t1 {
+    /// s4=start
+    pub s4: Instant,
+    /// s5=requests
+    pub s5: AtomicU64,
+    /// s6=bytes_served
+    pub s6: AtomicU64,
 }
 
-impl Default for Stats {
+impl Default for t1 {
     fn default() -> Self {
-        Self::new()
+        Self::f10()
     }
 }
 
-impl Stats {
-    pub fn new() -> Self {
+impl t1 {
+    /// f10=new
+    pub fn f10() -> Self {
         Self {
-            start: Instant::now(),
-            requests: AtomicU64::new(0),
-            bytes_served: AtomicU64::new(0),
+            s4: Instant::now(),
+            s5: AtomicU64::new(0),
+            s6: AtomicU64::new(0),
         }
     }
 
-    pub fn record_request(&self, bytes: u64) {
-        self.requests.fetch_add(1, Ordering::Relaxed);
-        self.bytes_served.fetch_add(bytes, Ordering::Relaxed);
+    /// f11=record_request
+    pub fn f11(&self, bytes: u64) {
+        self.s5.fetch_add(1, Ordering::Relaxed);
+        self.s6.fetch_add(bytes, Ordering::Relaxed);
     }
 
-    pub fn uptime_secs(&self) -> u64 {
-        self.start.elapsed().as_secs()
+    /// f12=uptime_secs
+    pub fn f12(&self) -> u64 {
+        self.s4.elapsed().as_secs()
     }
 
-    pub fn uptime_display(&self) -> String {
-        let s = self.uptime_secs();
+    /// f13=uptime_display
+    pub fn f13(&self) -> String {
+        let s = self.f12();
         let h = s / 3600;
         let m = (s % 3600) / 60;
         format!("{}h {}m", h, m)
     }
 
-    pub fn requests_total(&self) -> u64 {
-        self.requests.load(Ordering::Relaxed)
+    /// f14=requests_total
+    pub fn f14(&self) -> u64 {
+        self.s5.load(Ordering::Relaxed)
     }
 
-    pub fn bytes_total(&self) -> u64 {
-        self.bytes_served.load(Ordering::Relaxed)
+    /// f15=bytes_total
+    pub fn f15(&self) -> u64 {
+        self.s6.load(Ordering::Relaxed)
     }
 
-    pub fn bytes_display(&self) -> String {
-        let b = self.bytes_total();
+    /// f16=bytes_display
+    pub fn f16(&self) -> String {
+        let b = self.f15();
         if b < 1024 {
             format!("{} B", b)
         } else if b < 1024 * 1024 {
@@ -64,34 +76,33 @@ impl Stats {
         }
     }
 
-    /// Estimated power draw in watts based on request rate.
-    pub fn power_estimate_w(&self) -> f64 {
-        let rps = if self.uptime_secs() > 0 {
-            self.requests_total() as f64 / self.uptime_secs() as f64
+    /// f17=power_estimate_w
+    pub fn f17(&self) -> f64 {
+        let rps = if self.f12() > 0 {
+            self.f14() as f64 / self.f12() as f64
         } else {
             0.0
         };
-        // Base: 0.5W idle, +0.1W per request/sec
         0.5 + (rps * 0.1).min(1.0)
     }
 
-    /// Estimated monthly electricity cost at $0.15/kWh.
-    pub fn monthly_cost_display(&self) -> String {
-        let watts = self.power_estimate_w();
+    /// f18=monthly_cost_display
+    pub fn f18(&self) -> String {
+        let watts = self.f17();
         let kwh_month = watts * 24.0 * 30.0 / 1000.0;
         let cost = kwh_month * 0.15;
         format!("${:.2}", cost)
     }
 
-    /// JSON snapshot for the dashboard or API.
-    pub fn to_json(&self) -> String {
+    /// f19=to_json
+    pub fn f19(&self) -> String {
         format!(
             r#"{{"uptime":"{}","requests":{},"bytes_served":"{}","power_w":{:.1},"monthly_cost":"{}"}}"#,
-            self.uptime_display(),
-            self.requests_total(),
-            self.bytes_display(),
-            self.power_estimate_w(),
-            self.monthly_cost_display()
+            self.f13(),
+            self.f14(),
+            self.f16(),
+            self.f17(),
+            self.f18()
         )
     }
 }

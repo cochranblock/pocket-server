@@ -3,6 +3,7 @@
 
 //! JNI bridge — Android calls into Rust to start/stop the server
 //! and poll stats for the dashboard Activity.
+//! JNI symbols cannot be renamed (Java naming convention).
 
 use jni::objects::{JClass, JString};
 use jni::sys::jstring;
@@ -11,12 +12,13 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
-use crate::stats::Stats;
+use crate::stats::t1;
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
-static STATS: OnceLock<std::sync::Arc<Stats>> = OnceLock::new();
+static STATS: OnceLock<std::sync::Arc<t1>> = OnceLock::new();
 
-fn get_runtime() -> &'static Runtime {
+/// f22=get_runtime
+fn f22() -> &'static Runtime {
     RUNTIME.get_or_init(|| {
         tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
@@ -35,27 +37,27 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
     port: jni::sys::jint,
     site_dir: JString,
 ) {
-    let site_name: String = env.get_string(&site_name).unwrap().into();
+    let s1: String = env.get_string(&site_name).unwrap().into();
     let port = port as u16;
     let dir_str: String = env.get_string(&site_dir).unwrap().into();
-    let site_dir = if dir_str.is_empty() {
+    let s3 = if dir_str.is_empty() {
         None
     } else {
         Some(PathBuf::from(dir_str))
     };
 
-    let stats = std::sync::Arc::new(Stats::new());
-    let _ = STATS.set(stats.clone());
+    let s0 = std::sync::Arc::new(t1::f10());
+    let _ = STATS.set(s0.clone());
 
-    let rt = get_runtime();
+    let rt = f22();
     rt.spawn(async move {
-        let state = crate::server::AppState {
-            stats,
-            site_name,
-            hostname: "pocket-server".into(),
-            site_dir,
+        let state = crate::server::t0 {
+            s0,
+            s1,
+            s2: "pocket-server".into(),
+            s3,
         };
-        let app = crate::server::build_router(state);
+        let app = crate::server::f8(state);
         let addr = format!("0.0.0.0:{}", port);
         let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
         axum::serve(
@@ -73,8 +75,8 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_getStats(
     env: JNIEnv,
     _class: JClass,
 ) -> jstring {
-    let json = if let Some(stats) = STATS.get() {
-        stats.to_json()
+    let json = if let Some(s0) = STATS.get() {
+        s0.f19()
     } else {
         r#"{"uptime":"0h 0m","requests":0,"bytes_served":"0 B","power_w":0.0,"monthly_cost":"$0.00"}"#.to_string()
     };

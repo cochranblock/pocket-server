@@ -17,22 +17,23 @@ use std::sync::Arc;
 use tower_http::compression::CompressionLayer;
 use tower_http::services::ServeDir;
 
-use crate::stats::Stats;
+use crate::stats::t1;
 
-pub struct AppState {
-    pub stats: Arc<Stats>,
-    pub site_name: String,
-    pub hostname: String,
-    /// Directory on phone storage containing user's site files.
-    /// None = serve default landing page at /.
-    pub site_dir: Option<PathBuf>,
+/// t0=AppState
+#[allow(non_camel_case_types)]
+pub struct t0 {
+    /// s0=stats
+    pub s0: Arc<t1>,
+    /// s1=site_name
+    pub s1: String,
+    /// s2=hostname
+    pub s2: String,
+    /// s3=site_dir — directory on phone storage containing user's site files
+    pub s3: Option<PathBuf>,
 }
 
-// ---------------------------------------------------------------------------
-// Kiosk dashboard — the phone screen shows this
-// ---------------------------------------------------------------------------
-
-fn dashboard_page(state: &AppState) -> String {
+/// f0=dashboard_page — kiosk dashboard, the phone screen shows this
+fn f0(state: &t0) -> String {
     format!(
         r##"<!DOCTYPE html>
 <html lang="en">
@@ -82,15 +83,12 @@ setInterval(poll,2000);
 </script>
 </body>
 </html>"##,
-        name = state.site_name
+        name = state.s1
     )
 }
 
-// ---------------------------------------------------------------------------
-// Default landing page — shown to visitors when no user site is loaded
-// ---------------------------------------------------------------------------
-
-fn landing_page(state: &AppState) -> String {
+/// f1=landing_page — shown to visitors when no user site is loaded
+fn f1(state: &t0) -> String {
     format!(
         r#"<!DOCTYPE html>
 <html lang="en">
@@ -116,28 +114,27 @@ p{{font-size:1.2rem;color:#888;margin-bottom:0.5rem}}
 </div>
 </body>
 </html>"#,
-        name = state.site_name
+        name = state.s1
     )
 }
 
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
-
-async fn dashboard(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    Html(dashboard_page(&state))
+/// f2=dashboard — handler
+async fn f2(State(state): State<Arc<t0>>) -> impl IntoResponse {
+    Html(f0(&state))
 }
 
-async fn fallback_index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let body = landing_page(&state);
+/// f3=fallback_index
+async fn f3(State(state): State<Arc<t0>>) -> impl IntoResponse {
+    let body = f1(&state);
     let len = body.len() as u64;
-    state.stats.record_request(len);
+    state.s0.f11(len);
     Html(body)
 }
 
-async fn api_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let json = state.stats.to_json();
-    state.stats.record_request(json.len() as u64);
+/// f4=api_stats
+async fn f4(State(state): State<Arc<t0>>) -> impl IntoResponse {
+    let json = state.s0.f19();
+    state.s0.f11(json.len() as u64);
     (
         StatusCode::OK,
         [("content-type", "application/json")],
@@ -145,21 +142,21 @@ async fn api_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     )
 }
 
-async fn health() -> &'static str {
+/// f5=health
+async fn f5() -> &'static str {
     "OK"
 }
 
-/// Upload files to the site directory. Localhost only.
-/// POST /api/upload with multipart/form-data.
-async fn upload(
+/// f6=upload — upload files to site directory, localhost only
+async fn f6(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<t0>>,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
     if !addr.ip().is_loopback() {
         return (StatusCode::FORBIDDEN, "upload restricted to localhost".to_string());
     }
-    let base = match &state.site_dir {
+    let base = match &state.s3 {
         Some(d) => d.clone(),
         None => return (StatusCode::BAD_REQUEST, "no site directory configured".to_string()),
     };
@@ -171,7 +168,6 @@ async fn upload(
             None => continue,
         };
 
-        // Sanitize: strip path components, keep only the filename
         let clean: String = file_name
             .replace('\\', "/")
             .rsplit('/')
@@ -203,9 +199,9 @@ async fn upload(
     (StatusCode::OK, format!("{} file(s) uploaded", count))
 }
 
-/// Middleware that counts bytes for static file responses.
-async fn counting_layer(
-    State(state): State<Arc<AppState>>,
+/// f7=counting_layer — middleware that counts bytes for static file responses
+async fn f7(
+    State(state): State<Arc<t0>>,
     req: Request,
     next: axum::middleware::Next,
 ) -> Response {
@@ -217,51 +213,46 @@ async fn counting_layer(
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u64>().ok())
             .unwrap_or(0);
-        state.stats.record_request(size);
+        state.s0.f11(size);
     }
     resp
 }
 
-// ---------------------------------------------------------------------------
-// Router
-// ---------------------------------------------------------------------------
-
-/// Build the router. Caller provides AppState with site config.
-pub fn build_router(state: AppState) -> Router {
+/// f8=build_router
+pub fn f8(state: t0) -> Router {
     let shared = Arc::new(state);
 
     let mut app = Router::new()
-        .route("/dashboard", get(dashboard))
-        .route("/api/stats", get(api_stats))
-        .route("/api/upload", post(upload))
-        .route("/health", get(health));
+        .route("/dashboard", get(f2))
+        .route("/api/stats", get(f4))
+        .route("/api/upload", post(f6))
+        .route("/health", get(f5));
 
-    // If a site directory is configured, serve it at /. Otherwise landing page.
-    if let Some(ref dir) = shared.site_dir {
+    if let Some(ref dir) = shared.s3 {
         let serve = ServeDir::new(dir).append_index_html_on_directories(true);
         app = app
             .nest_service("/", serve)
             .layer(axum::middleware::from_fn_with_state(
                 shared.clone(),
-                counting_layer,
+                f7,
             ));
     } else {
-        app = app.route("/", get(fallback_index));
+        app = app.route("/", get(f3));
     }
 
     app.layer(CompressionLayer::new().zstd(true))
         .with_state(shared)
 }
 
-/// Start the server on the given port. Blocking.
-pub async fn run(site_name: String, hostname: String, port: u16, site_dir: Option<PathBuf>) {
-    let state = AppState {
-        stats: Arc::new(Stats::new()),
-        site_name,
-        hostname,
-        site_dir,
+/// f9=run — start the server on the given port, blocking
+pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>) {
+    let state = t0 {
+        s0: Arc::new(t1::f10()),
+        s1,
+        s2,
+        s3,
     };
-    let app = build_router(state);
+    let app = f8(state);
     let addr = format!("0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(

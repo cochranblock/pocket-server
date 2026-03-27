@@ -6,7 +6,8 @@
 
 use std::path::PathBuf;
 
-fn parse_args() -> (String, u16, Option<PathBuf>, bool) {
+/// f21=parse_args
+fn f21() -> (String, u16, Option<PathBuf>, bool) {
     let mut name = "Pocket Server".to_string();
     let mut port: u16 = 8080;
     let mut site_dir: Option<PathBuf> = None;
@@ -53,7 +54,7 @@ fn parse_args() -> (String, u16, Option<PathBuf>, bool) {
 
 #[tokio::main]
 async fn main() {
-    let (name, port, site_dir, tunnel) = parse_args();
+    let (name, port, site_dir, tunnel) = f21();
 
     let dir_label = site_dir
         .as_ref()
@@ -68,8 +69,8 @@ async fn main() {
     eprintln!();
 
     if tunnel {
-        tokio::spawn(pocket_server::tunnel::start(port));
+        tokio::spawn(pocket_server::tunnel::f20(port));
     }
 
-    pocket_server::server::run(name, "pocket-server".into(), port, site_dir).await;
+    pocket_server::server::f9(name, "pocket-server".into(), port, site_dir).await;
 }
