@@ -5,10 +5,10 @@
 //! kiosk dashboard for the phone screen, stats API.
 
 use axum::{
-    extract::{Request, State},
+    extract::{Multipart, Request, State},
     http::StatusCode,
     response::{Html, IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use std::path::PathBuf;
@@ -148,6 +148,48 @@ async fn health() -> &'static str {
     "OK"
 }
 
+/// Upload files to the site directory.
+/// POST /api/upload with multipart/form-data — field name "file", optional "path" for subdirs.
+async fn upload(
+    State(state): State<Arc<AppState>>,
+    mut multipart: Multipart,
+) -> impl IntoResponse {
+    let base = match &state.site_dir {
+        Some(d) => d.clone(),
+        None => return (StatusCode::BAD_REQUEST, "no site directory configured".to_string()),
+    };
+
+    let mut count = 0u32;
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let file_name = match field.file_name() {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+
+        // Sanitize: no path traversal
+        let clean = file_name.replace("..", "").replace('\\', "/");
+        let dest = base.join(&clean);
+
+        if let Some(parent) = dest.parent() {
+            let _ = tokio::fs::create_dir_all(parent).await;
+        }
+
+        match field.bytes().await {
+            Ok(data) => {
+                if let Err(e) = tokio::fs::write(&dest, &data).await {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, format!("write error: {}", e));
+                }
+                count += 1;
+            }
+            Err(e) => {
+                return (StatusCode::BAD_REQUEST, format!("read error: {}", e));
+            }
+        }
+    }
+
+    (StatusCode::OK, format!("{} file(s) uploaded", count))
+}
+
 /// Middleware that counts bytes for static file responses.
 async fn counting_layer(
     State(state): State<Arc<AppState>>,
@@ -178,6 +220,7 @@ pub fn build_router(state: AppState) -> Router {
     let mut app = Router::new()
         .route("/dashboard", get(dashboard))
         .route("/api/stats", get(api_stats))
+        .route("/api/upload", post(upload))
         .route("/health", get(health));
 
     // If a site directory is configured, serve it at /. Otherwise landing page.

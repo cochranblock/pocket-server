@@ -7,6 +7,7 @@
 
 pub mod server;
 pub mod stats;
+pub mod tunnel;
 
 #[cfg(target_os = "android")]
 pub mod android;

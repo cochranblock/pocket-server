@@ -12,14 +12,20 @@ homepage = "https://cochranblock.org"
 
 [lib]
 name = "pocket_server"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "pocket-server"
+path = "src/main.rs"
 
 [dependencies]
-axum = "0.7"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "process", "io-util", "fs"] }
 tower-http = { version = "0.5", features = ["compression-zstd", "fs"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[target.'cfg(target_os = "android")'.dependencies]
 jni = "0.22"
 
 [profile.release]
