@@ -17,7 +17,7 @@ use tower_http::compression::CompressionLayer;
 use crate::stats::Stats;
 
 pub struct AppState {
-    pub stats: Stats,
+    pub stats: Arc<Stats>,
     pub site_name: String,
     pub hostname: String,
 }
@@ -88,7 +88,7 @@ pub fn build_router(state: AppState) -> Router {
 /// Start the server on the given port. Blocking.
 pub async fn run(site_name: String, hostname: String, port: u16) {
     let state = AppState {
-        stats: Stats::new(),
+        stats: Arc::new(Stats::new()),
         site_name,
         hostname,
     };

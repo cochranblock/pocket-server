@@ -42,7 +42,7 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
     let rt = get_runtime();
     rt.spawn(async move {
         let state = crate::server::AppState {
-            stats: Stats::new(),
+            stats,
             site_name: site_name.clone(),
             hostname: "pocket-server".into(),
         };
