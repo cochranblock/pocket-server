@@ -168,13 +168,13 @@ async fn f6(
             None => continue,
         };
 
-        let clean: String = file_name
-            .replace('\\', "/")
-            .rsplit('/')
-            .next()
-            .unwrap_or("")
-            .to_string();
-        if clean.is_empty() || clean == "." || clean == ".." {
+        // Sanitize: normalize separators, strip leading /, reject .. components
+        let normalized = file_name.replace('\\', "/");
+        let clean: PathBuf = normalized
+            .split('/')
+            .filter(|c| !c.is_empty() && *c != "." && *c != "..")
+            .collect();
+        if clean.as_os_str().is_empty() {
             continue;
         }
         let dest = base.join(&clean);
@@ -254,7 +254,16 @@ pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>) {
     };
     let app = f8(state);
     let addr = format!("0.0.0.0:{}", port);
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(l) => {
+            eprintln!("  listening on {}", addr);
+            l
+        }
+        Err(e) => {
+            eprintln!("error: cannot bind to {} — {}", addr, e);
+            std::process::exit(1);
+        }
+    };
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),

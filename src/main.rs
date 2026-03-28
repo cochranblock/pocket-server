@@ -61,10 +61,23 @@ async fn main() {
         .map(|d| d.display().to_string())
         .unwrap_or_else(|| "(default landing page)".into());
 
+    // Validate site dir if specified
+    if let Some(ref d) = site_dir
+        && !d.exists()
+    {
+        eprintln!("warning: site-dir does not exist: {}", d.display());
+        eprintln!("  creating it now...");
+        if let Err(e) = std::fs::create_dir_all(d) {
+            eprintln!("error: cannot create site-dir: {}", e);
+            std::process::exit(1);
+        }
+    }
+
     eprintln!("pocket-server v{}", env!("CARGO_PKG_VERSION"));
     eprintln!("  name:     {}", name);
     eprintln!("  port:     {}", port);
     eprintln!("  site-dir: {}", dir_label);
+    eprintln!("  site:      http://127.0.0.1:{}/", port);
     eprintln!("  dashboard: http://127.0.0.1:{}/dashboard", port);
     eprintln!();
 
