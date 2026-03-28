@@ -5,6 +5,7 @@
 //! A compiled Rust web server that runs as an Android foreground service
 //! with a bold kiosk-style dashboard showing live stats.
 
+pub mod govdocs;
 pub mod server;
 pub mod stats;
 pub mod tunnel;

@@ -17,6 +17,7 @@ use std::sync::Arc;
 use tower_http::compression::CompressionLayer;
 use tower_http::services::ServeDir;
 
+use crate::govdocs;
 use crate::stats::t1;
 
 /// t0=AppState
@@ -226,7 +227,11 @@ pub fn f8(state: t0) -> Router {
         .route("/dashboard", get(f2))
         .route("/api/stats", get(f4))
         .route("/api/upload", post(f6))
-        .route("/health", get(f5));
+        .route("/health", get(f5))
+        .route("/govdocs", get(govdocs::f23))
+        .route("/govdocs/sbom", get(govdocs::f24))
+        .route("/govdocs/capability", get(govdocs::f25))
+        .route("/govdocs/security", get(govdocs::f26));
 
     if let Some(ref dir) = shared.s3 {
         let serve = ServeDir::new(dir).append_index_html_on_directories(true);

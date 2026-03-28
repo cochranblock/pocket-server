@@ -32,6 +32,10 @@ fn f21() -> (String, u16, Option<PathBuf>, bool) {
             "--tunnel" | "-t" => {
                 tunnel = true;
             }
+            "--sbom" => {
+                print!("{}", pocket_server::govdocs::generate_spdx());
+                std::process::exit(0);
+            }
             "--help" | "-h" => {
                 eprintln!("pocket-server — your website lives on your phone");
                 eprintln!();
@@ -39,6 +43,7 @@ fn f21() -> (String, u16, Option<PathBuf>, bool) {
                 eprintln!("  --port, -p <port>      Port to bind (default: 8080)");
                 eprintln!("  --site-dir, -d <path>  Directory with site files to serve");
                 eprintln!("  --tunnel, -t           Start Cloudflare quick tunnel");
+                eprintln!("  --sbom                 Print SPDX SBOM and exit");
                 eprintln!("  --help, -h             This message");
                 std::process::exit(0);
             }

@@ -36,6 +36,10 @@ P13 tokenization. Every public symbol has a compressed identifier.
 | f20 | start | tunnel | pub async fn(port: u16) — spawn cloudflared |
 | f21 | parse_args | main | fn() -> (String, u16, Option<PathBuf>, bool) |
 | f22 | get_runtime | android | fn() -> &'static Runtime — lazy tokio init |
+| f23 | govdocs_index | govdocs | async handler — GET /govdocs |
+| f24 | govdocs_sbom | govdocs | async handler — GET /govdocs/sbom |
+| f25 | govdocs_capability | govdocs | async handler — GET /govdocs/capability |
+| f26 | govdocs_security | govdocs | async handler — GET /govdocs/security |
 
 ## Fields (s)
 
@@ -58,6 +62,10 @@ P13 tokenization. Every public symbol has a compressed identifier.
 | /api/stats | GET | f4 | public |
 | /api/upload | POST | f6 | localhost only |
 | /health | GET | f5 | public |
+| /govdocs | GET | f23 | public |
+| /govdocs/sbom | GET | f24 | public |
+| /govdocs/capability | GET | f25 | public |
+| /govdocs/security | GET | f26 | public |
 
 ## Notes
 
