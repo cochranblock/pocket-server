@@ -7,7 +7,7 @@
 
 use jni::objects::{JClass, JString};
 use jni::sys::jstring;
-use jni::JNIEnv;
+use jni::{EnvUnowned, Outcome};
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
@@ -30,55 +30,67 @@ fn f22() -> &'static Runtime {
 
 /// Called from Java: PocketServer.startServer(siteName, port, siteDir)
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServer(
-    mut env: JNIEnv,
-    _class: JClass,
-    site_name: JString,
+#[allow(deprecated)]
+pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServer<'local>(
+    mut unowned_env: EnvUnowned<'local>,
+    _class: JClass<'local>,
+    site_name: JString<'local>,
     port: jni::sys::jint,
-    site_dir: JString,
+    site_dir: JString<'local>,
 ) {
-    let s1: String = env.get_string(&site_name).unwrap().into();
-    let port = port as u16;
-    let dir_str: String = env.get_string(&site_dir).unwrap().into();
-    let s3 = if dir_str.is_empty() {
-        None
-    } else {
-        Some(PathBuf::from(dir_str))
-    };
-
-    let s0 = std::sync::Arc::new(t1::f10());
-    let _ = STATS.set(s0.clone());
-
-    let rt = f22();
-    rt.spawn(async move {
-        let state = crate::server::t0 {
-            s0,
-            s1,
-            s2: "pocket-server".into(),
-            s3,
+    let _: jni::EnvOutcome<'_, (), jni::errors::Error> = unowned_env.with_env(|env| {
+        let s1: String = env.get_string(&site_name)?.into();
+        let port = port as u16;
+        let dir_str: String = env.get_string(&site_dir)?.into();
+        let s3 = if dir_str.is_empty() {
+            None
+        } else {
+            Some(PathBuf::from(dir_str))
         };
-        let app = crate::server::f8(state);
-        let addr = format!("0.0.0.0:{}", port);
-        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-        axum::serve(
-            listener,
-            app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
-        )
-        .await
-        .unwrap();
+
+        let s0 = std::sync::Arc::new(t1::f10());
+        let _ = STATS.set(s0.clone());
+
+        let rt = f22();
+        rt.spawn(async move {
+            let state = crate::server::t0 {
+                s0,
+                s1,
+                s2: "pocket-server".into(),
+                s3,
+            };
+            let app = crate::server::f8(state);
+            let addr = format!("0.0.0.0:{}", port);
+            let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+            axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .await
+            .unwrap();
+        });
+        Ok(())
     });
 }
 
 /// Called from Java: PocketServer.getStats() -> JSON string
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_getStats(
-    env: JNIEnv,
-    _class: JClass,
+#[allow(deprecated)]
+pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_getStats<'local>(
+    mut unowned_env: EnvUnowned<'local>,
+    _class: JClass<'local>,
 ) -> jstring {
     let json = if let Some(s0) = STATS.get() {
         s0.f19()
     } else {
         r#"{"uptime":"0h 0m","requests":0,"bytes_served":"0 B","power_w":0.0,"monthly_cost":"$0.00"}"#.to_string()
     };
-    env.new_string(&json).unwrap().into_raw()
+    let outcome: jni::EnvOutcome<'_, jstring, jni::errors::Error> = unowned_env.with_env(|env| {
+        Ok(env.new_string(&json)?.into_raw())
+    });
+    let outcome = outcome.into_outcome();
+    match outcome {
+        Outcome::Ok(s) => s,
+        _ => std::ptr::null_mut(),
+    }
 }

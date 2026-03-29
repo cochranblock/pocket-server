@@ -46,7 +46,6 @@ android {
 
 def rustTargets = [
     'arm64-v8a'  : 'aarch64-linux-android',
-    'armeabi-v7a': 'armv7-linux-androideabi',
 ]
 
 task cargoNdkBuild {
@@ -54,6 +53,11 @@ task cargoNdkBuild {
     doLast {
         rustTargets.each { abi, target ->
             def outDir = file("src/main/jniLibs/${abi}")
+            def soFile = new File(outDir, "libpocket_server.so")
+            if (soFile.exists()) {
+                println "  ${abi}: .so already exists, skipping cargo-ndk"
+                return
+            }
             outDir.mkdirs()
             exec {
                 workingDir rootProject.file('..')
