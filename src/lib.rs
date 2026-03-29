@@ -6,9 +6,13 @@
 //! with a bold kiosk-style dashboard showing live stats.
 
 pub mod govdocs;
+pub mod pwa;
 pub mod server;
 pub mod stats;
 pub mod tunnel;
 
 #[cfg(target_os = "android")]
 pub mod android;
+
+#[cfg(target_os = "ios")]
+pub mod ios;

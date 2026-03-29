@@ -80,13 +80,45 @@ The server compiles as a shared library (`libpocket_server.so`) for Android. The
 
 Build: `cd android && ./gradlew assembleRelease` (requires cargo-ndk + Android NDK).
 
+## PWA
+
+The dashboard is installable as a Progressive Web App from any browser. Open `/dashboard`, tap "Add to Home Screen." Works offline after first load.
+
+## Platforms
+
+| Platform | Target | Type | Status |
+|----------|--------|------|--------|
+| macOS ARM | `aarch64-apple-darwin` | Binary | Ready |
+| macOS Intel | `x86_64-apple-darwin` | Binary | Ready |
+| Linux x86_64 | `x86_64-unknown-linux-gnu` | Binary | Cross-compile via `cross` |
+| Linux ARM64 | `aarch64-unknown-linux-gnu` | Binary | Cross-compile (RPi 4/5, Graviton) |
+| Linux ARM32 | `armv7-unknown-linux-gnueabihf` | Binary | Cross-compile (older RPi, IoT) |
+| Android ARM64 | `aarch64-linux-android` | APK | cargo-ndk + Gradle |
+| Android ARM32 | `armv7-linux-androideabi` | APK | cargo-ndk + Gradle |
+| iOS | `aarch64-apple-ios` | IPA | Xcode + staticlib |
+| Windows | `x86_64-pc-windows-gnu` | Binary | Cross-compile via `cross` |
+| FreeBSD | `x86_64-unknown-freebsd` | Binary | Cross-compile via `cross` |
+| RISC-V | `riscv64gc-unknown-linux-gnu` | Binary | Cross-compile via `cross` |
+| POWER | `powerpc64le-unknown-linux-gnu` | Binary | Cross-compile (gov mainframes) |
+| Web (PWA) | Browser | Installable | Built-in, any device |
+
+Build all: `./build-all-targets.sh`
+
 ## Stats
 
-- **Binary:** 1.01 MB (release, stripped, LTO)
-- **Rust LOC:** 593
+- **Binary:** ~1.1 MB (release, stripped, LTO)
 - **Direct deps:** 3 (axum, tokio, tower-http)
 - **Power estimate:** 0.5W idle + 0.1W/req/sec
 - **Monthly cost:** ~$0.05 at idle ($0.15/kWh)
+
+## Compliance
+
+The binary serves its own compliance docs at runtime:
+- `/govdocs` — index
+- `/govdocs/sbom` — live SBOM from Cargo.lock
+- `/govdocs/capability` — capability statement
+- `/govdocs/security` — security posture
+- `--sbom` — SPDX 2.3 to stdout
 
 ## License
 

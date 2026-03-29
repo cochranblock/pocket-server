@@ -18,6 +18,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::services::ServeDir;
 
 use crate::govdocs;
+use crate::pwa;
 use crate::stats::t1;
 
 /// t0=AppState
@@ -42,6 +43,7 @@ fn f0(state: &t0) -> String {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>{name} — Dashboard</title>
+{pwa}
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
 html,body{{height:100%;overflow:hidden}}
@@ -81,10 +83,12 @@ async function poll(){{
 }}
 poll();
 setInterval(poll,2000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');
 </script>
 </body>
 </html>"##,
-        name = state.s1
+        name = state.s1,
+        pwa = pwa::PWA_HEAD,
     )
 }
 
@@ -97,6 +101,7 @@ fn f1(state: &t0) -> String {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{name}</title>
+{pwa}
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{background:#0a0a0a;color:#e0e0e0;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh}}
@@ -115,7 +120,8 @@ p{{font-size:1.2rem;color:#888;margin-bottom:0.5rem}}
 </div>
 </body>
 </html>"#,
-        name = state.s1
+        name = state.s1,
+        pwa = pwa::PWA_HEAD,
     )
 }
 
@@ -231,7 +237,10 @@ pub fn f8(state: t0) -> Router {
         .route("/govdocs", get(govdocs::f23))
         .route("/govdocs/sbom", get(govdocs::f24))
         .route("/govdocs/capability", get(govdocs::f25))
-        .route("/govdocs/security", get(govdocs::f26));
+        .route("/govdocs/security", get(govdocs::f26))
+        .route("/manifest.json", get(pwa::f27))
+        .route("/sw.js", get(pwa::f28))
+        .route("/pwa/icon.svg", get(pwa::f29));
 
     if let Some(ref dir) = shared.s3 {
         let serve = ServeDir::new(dir).append_index_html_on_directories(true);
