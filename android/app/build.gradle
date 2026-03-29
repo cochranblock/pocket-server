@@ -5,20 +5,26 @@ apply plugin: 'com.android.application'
 
 android {
     namespace 'org.cochranblock.pocketserver'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId 'org.cochranblock.pocketserver'
         minSdk 26
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName '0.1.0'
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     // NDK: cargo-ndk builds libpocket_server.so into jniLibs
@@ -35,7 +41,6 @@ android {
 // Requires: cargo install cargo-ndk
 //           rustup target add aarch64-linux-android armv7-linux-androideabi
 //
-// The task builds the .so for each ABI and copies it into jniLibs/.
 // Run: ./gradlew assembleRelease
 // ---------------------------------------------------------------------------
 

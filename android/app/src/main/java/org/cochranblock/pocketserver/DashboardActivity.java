@@ -3,11 +3,14 @@
 
 package org.cochranblock.pocketserver;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -20,27 +23,47 @@ import android.webkit.WebViewClient;
 public class DashboardActivity extends Activity {
 
     private static final int PORT = 8080;
+    private static final int NOTIF_PERM_CODE = 1;
     private WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Fullscreen kiosk mode
+        // Keep screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        getWindow().getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_FULLSCREEN
-            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        );
+
+        // Fullscreen immersive — API 30+ WindowInsetsController
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            WindowInsetsController wic = getWindow().getInsetsController();
+            if (wic != null) {
+                wic.hide(WindowInsets.Type.systemBars());
+                wic.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                );
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
+        }
+
+        // Request notification permission (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIF_PERM_CODE
+                );
+            }
+        }
 
         // Start the foreground service
         Intent svc = new Intent(this, ServerService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(svc);
-        } else {
-            startService(svc);
-        }
+        startForegroundService(svc);
 
         // WebView pointed at the dashboard
         webView = new WebView(this);
@@ -57,7 +80,14 @@ public class DashboardActivity extends Activity {
     }
 
     @Override
-    public void onBackPressed() {
-        // Kiosk mode — don't leave
+    protected void onResume() {
+        super.onResume();
+        // Re-apply immersive on resume
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController wic = getWindow().getInsetsController();
+            if (wic != null) {
+                wic.hide(WindowInsets.Type.systemBars());
+            }
+        }
     }
 }
