@@ -2,14 +2,18 @@
 
 Measurable state of the project. Updated each session.
 
+Last verified: 2026-03-29
+
 ---
 
 ## Binary Size
 
 | Target | Size | Date |
 |--------|------|------|
-| aarch64-apple-darwin (release) | 1,055,328 bytes (1.01 MB) | 2026-03-27 |
-| cdylib (.dylib, macOS) | 16,752 bytes (16 KB) | 2026-03-27 |
+| aarch64-apple-darwin (release bin) | 1,088,560 bytes (1.04 MB) | 2026-03-29 |
+| x86_64-apple-darwin (release bin) | 1,221,284 bytes (1.16 MB) | 2026-03-29 |
+| aarch64-linux-android (.so) | 1,722,544 bytes (1.64 MB) | 2026-03-29 |
+| Android AAB (app-release.aab) | 737,815 bytes (721 KB) | 2026-03-29 |
 
 Profile: `opt-level=z`, `lto=true`, `codegen-units=1`, `strip=true`, `panic=abort`
 
@@ -17,15 +21,18 @@ Profile: `opt-level=z`, `lto=true`, `codegen-units=1`, `strip=true`, `panic=abor
 
 | File | LOC | Purpose |
 |------|-----|---------|
-| server.rs | 273 | Router, handlers, upload, middleware |
+| govdocs.rs | 319 | Compliance docs, SBOM, SPDX generator |
+| server.rs | 287 | Router, handlers, upload, middleware |
 | stats.rs | 108 | Atomic counters, power/cost estimation |
-| main.rs | 89 | CLI entry point, arg parsing |
-| android.rs | 84 | JNI bridge (cfg android only) |
+| android.rs | 96 | JNI bridge (cfg android only) |
+| main.rs | 94 | CLI entry point, arg parsing |
+| pwa.rs | 63 | PWA manifest, service worker, icon |
 | tunnel.rs | 48 | Cloudflare tunnel child process |
-| lib.rs | 13 | Module declarations |
-| **Rust total** | **615** | |
-| Java (4 files) | 221 | Activity, Service, Receiver, JNI |
-| **Grand total** | **836** | |
+| ios.rs | 30 | iOS FFI entry point (cfg ios only) |
+| lib.rs | 18 | Module declarations |
+| **Rust total** | **1,063** | |
+| Java (4 files) | 250 | Activity, Service, Receiver, JNI |
+| **Grand total** | **1,313** | |
 
 ## Function Count
 
@@ -36,7 +43,10 @@ Profile: `opt-level=z`, `lto=true`, `codegen-units=1`, `strip=true`, `panic=abor
 | tunnel.rs | 1 | f20 |
 | main.rs | 2 | f21 + main |
 | android.rs | 3 | f22 + 2 JNI exports |
-| **Total** | **27** | |
+| govdocs.rs | 9 | f23-f26 + 5 internal helpers |
+| pwa.rs | 3 | f27-f29 |
+| ios.rs | 1 | pocket_server_ios_main |
+| **Total** | **40** | |
 
 ## Type Count
 
@@ -63,12 +73,12 @@ Profile: `opt-level=z`, `lto=true`, `codegen-units=1`, `strip=true`, `panic=abor
 |------|-------|
 | Direct (Cargo.toml) | 3 (axum, tokio, tower-http) |
 | Android-only | 1 (jni) |
-| Transitive (Cargo.lock) | 99 |
+| Transitive (Cargo.lock) | 98 |
 
 ## P13 Tokenization Stats
 
 - Types tokenized: 2 (t0-t1)
-- Functions tokenized: 23 (f0-f22)
+- Functions tokenized: 30 (f0-f29)
 - Fields tokenized: 7 (s0-s6)
 - Error variants: 0 (no custom error enum)
 - Compression map: `docs/compression_map.md`
@@ -116,7 +126,7 @@ Full analysis: `USER_STORY_ANALYSIS.md`
 2. Subdirectory upload → preserves relative paths, creates dirs, blocks traversal
 3. README → full quickstart, API docs, CLI flags, binary stats
 
-## Routes
+## Routes (12 total)
 
 | Path | Method | Handler | Auth |
 |------|--------|---------|------|
@@ -125,3 +135,10 @@ Full analysis: `USER_STORY_ANALYSIS.md`
 | /api/stats | GET | f4 | public |
 | /api/upload | POST | f6 | localhost only |
 | /health | GET | f5 | public |
+| /govdocs | GET | f23 | public |
+| /govdocs/sbom | GET | f24 | public |
+| /govdocs/capability | GET | f25 | public |
+| /govdocs/security | GET | f26 | public |
+| /manifest.json | GET | f27 | public |
+| /sw.js | GET | f28 | public |
+| /pwa/icon.svg | GET | f29 | public |

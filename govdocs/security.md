@@ -6,7 +6,7 @@ Pocket Server is a single compiled Rust binary. No interpreter, no VM, no dynami
 
 ## Memory Safety
 
-Written in Rust. Memory safety enforced at compile time by the borrow checker. No use-after-free, no buffer overflows, no null pointer dereferences in safe code. Zero `unsafe` blocks in application code (JNI bridge uses `#[unsafe(no_mangle)]` for FFI symbol export only).
+Written in Rust. Memory safety enforced at compile time by the borrow checker. No use-after-free, no buffer overflows, no null pointer dereferences in safe code. One `unsafe` block in `ios.rs` (`CStr::from_ptr` for FFI string conversion). JNI and iOS bridges use `#[unsafe(no_mangle)]` for FFI symbol export.
 
 ## Dependencies
 

@@ -40,6 +40,9 @@ P13 tokenization. Every public symbol has a compressed identifier.
 | f24 | govdocs_sbom | govdocs | async handler — GET /govdocs/sbom |
 | f25 | govdocs_capability | govdocs | async handler — GET /govdocs/capability |
 | f26 | govdocs_security | govdocs | async handler — GET /govdocs/security |
+| f27 | manifest_json | pwa | async handler — GET /manifest.json |
+| f28 | service_worker | pwa | async handler — GET /sw.js |
+| f29 | pwa_icon | pwa | async handler — GET /pwa/icon.svg |
 
 ## Fields (s)
 
@@ -66,6 +69,9 @@ P13 tokenization. Every public symbol has a compressed identifier.
 | /govdocs/sbom | GET | f24 | public |
 | /govdocs/capability | GET | f25 | public |
 | /govdocs/security | GET | f26 | public |
+| /manifest.json | GET | f27 | public |
+| /sw.js | GET | f28 | public |
+| /pwa/icon.svg | GET | f29 | public |
 
 ## Notes
 

@@ -55,6 +55,7 @@ Requires [cloudflared](https://developers.cloudflare.com/cloudflare-one/connecti
 --port, -p <port>      Port to bind (default: 8080)
 --site-dir, -d <path>  Directory with site files to serve
 --tunnel, -t           Start Cloudflare quick tunnel
+--sbom                 Print SPDX SBOM and exit
 --help, -h             Help
 ```
 
@@ -69,6 +70,13 @@ Without `--site-dir`, a default landing page is served.
 | `/api/stats` | GET | JSON: uptime, requests, bytes, watts, cost |
 | `/api/upload` | POST | Upload files (multipart, localhost only) |
 | `/health` | GET | Returns "OK" |
+| `/govdocs` | GET | Compliance docs index |
+| `/govdocs/sbom` | GET | Live SBOM (HTML or `?format=spdx`) |
+| `/govdocs/capability` | GET | Capability statement |
+| `/govdocs/security` | GET | Security posture |
+| `/manifest.json` | GET | PWA manifest |
+| `/sw.js` | GET | Service worker |
+| `/pwa/icon.svg` | GET | App icon (SVG) |
 
 ## Android
 
@@ -78,7 +86,9 @@ The server compiles as a shared library (`libpocket_server.so`) for Android. The
 - **ServerService** — foreground service with wake lock
 - **BootReceiver** — auto-start on reboot
 
-Build: `cd android && ./gradlew assembleRelease` (requires cargo-ndk + Android NDK).
+Build: `cargo ndk -t arm64-v8a --platform 26 -- build --release && cd android && gradle bundleRelease`
+
+Requires cargo-ndk, Android NDK, Android SDK (API 35).
 
 ## PWA
 
@@ -93,8 +103,7 @@ The dashboard is installable as a Progressive Web App from any browser. Open `/d
 | Linux x86_64 | `x86_64-unknown-linux-gnu` | Binary | Cross-compile via `cross` |
 | Linux ARM64 | `aarch64-unknown-linux-gnu` | Binary | Cross-compile (RPi 4/5, Graviton) |
 | Linux ARM32 | `armv7-unknown-linux-gnueabihf` | Binary | Cross-compile (older RPi, IoT) |
-| Android ARM64 | `aarch64-linux-android` | APK | cargo-ndk + Gradle |
-| Android ARM32 | `armv7-linux-androideabi` | APK | cargo-ndk + Gradle |
+| Android ARM64 | `aarch64-linux-android` | AAB | cargo-ndk + Gradle |
 | iOS | `aarch64-apple-ios` | IPA | Xcode + staticlib |
 | Windows | `x86_64-pc-windows-gnu` | Binary | Cross-compile via `cross` |
 | FreeBSD | `x86_64-unknown-freebsd` | Binary | Cross-compile via `cross` |
@@ -106,8 +115,9 @@ Build all: `./build-all-targets.sh`
 
 ## Stats
 
-- **Binary:** ~1.1 MB (release, stripped, LTO)
-- **Direct deps:** 3 (axum, tokio, tower-http)
+- **Binary:** 1.04 MB macOS ARM, 1.16 MB macOS Intel (release, stripped, LTO)
+- **AAB:** 721 KB (Android App Bundle)
+- **Direct deps:** 3 (axum, tokio, tower-http) + jni on Android
 - **Power estimate:** 0.5W idle + 0.1W/req/sec
 - **Monthly cost:** ~$0.05 at idle ($0.15/kWh)
 
