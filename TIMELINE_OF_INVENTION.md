@@ -150,3 +150,17 @@ Found bug: `startServer` created a second `Stats::new()` for AppState instead of
   compression_map.md, govdocs/security.md
 - 2 lies (ARM32 claimed but dropped, "zero unsafe" but ios.rs has one)
 - 5 timeline commits spot-checked — all verified
+
+## 2026-03-30 — Polish Pass
+
+| Hash | Description |
+|------|-------------|
+| `d8c9220` | polish: TOI current, empty assets/ removed, .gitignore hardened |
+
+- TOI brought current with all 7 missing commits
+- Removed empty `assets/` directory (dead weight from scaffold)
+- .gitignore hardened: added .DS_Store, *.log, *.env
+- cargo audit: 0 advisories / 99 deps
+- cargo outdated: axum 0.7→0.8, tower-http 0.5→0.6 available (major bumps, left as-is)
+- cargo tree --duplicates: 0 duplicates
+- Working tree clean, clippy clean
