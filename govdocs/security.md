@@ -48,6 +48,10 @@ Full SBOM available at `/govdocs/sbom` or via `--sbom` flag.
 - No pre-built binaries distributed — customers build from source or receive a pre-configured device
 - Cargo.lock pins all dependency versions
 
+## Audit History
+
+Last audited via [P23 Triple Lens](https://github.com/cochranblock/kova/blob/main/docs/KOVA_BLUEPRINT.md#10-p23-triple-lens-research-protocol) on 2026-04-02. Paranoia lens confirmed: upload auth PASS, path traversal PASS. Red flags: no rate limiting, no request logging, unbounded upload size.
+
 ## Known Limitations
 
 - No TLS termination in the binary itself (relies on tunnel or reverse proxy)

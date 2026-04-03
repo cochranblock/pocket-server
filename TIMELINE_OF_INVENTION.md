@@ -173,18 +173,27 @@ Found bug: `startServer` created a second `Stats::new()` for AppState instead of
 
 - Timeline and Proof of Artifacts brought current with polish pass commit
 
-## 2026-04-02 — IRONHIVE Swarm Build + Doc Audit
+## 2026-04-02 — P23 Triple Lens Audit + IRONHIVE Swarm Build
 
 | Hash | Description |
 |------|-------------|
 | `f4943e4` | README: add iOS section, fix platform types, add Linux binary size + LOC stats |
+| `5e66b18` | docs: accuracy pass + cochranblock.org cross-links across all docs |
+
+**Method:** P23 Triple Lens — full guest analysis applied three opposing perspectives to pocket-server.
+
+| Lens | Focus | Key Findings |
+|------|-------|-------------|
+| **Optimist** | What works, competitive advantages | 1,063 LOC Rust, 3 deps, 1.04 MB binary, 12 routes, real AAB, 13 build targets. Solid engineering for a prototype. |
+| **Pessimist** | Gaps, missing features, UX failures | Zero tests, no logging, no graceful shutdown, no file list/delete API, no TLS, iOS has no Xcode project. Product score: 2.8/10. |
+| **Paranoia** | Security risks, attack vectors, failure modes | Path traversal protection verified (PASS). Upload auth verified (PASS). No rate limiting (risk). Unbounded uploads (risk). No request logging (blind spot). |
+| **Synthesis** | Priority-ordered action items | Tests → graceful shutdown → logging → IRONHIVE CI → file management API → TLS → iOS Xcode |
 
 - Synced pocket-server to IRONHIVE cluster (lf, gd, st) via rsync
 - Built x86_64-unknown-linux-gnu release on node lf (n0): 1,485,656 bytes (1.42 MB), 18s
 - Built aarch64-apple-darwin release locally: 1,088,560 bytes (1.04 MB), 7s
-- Full guest analysis: 1,063 LOC Rust, 250 LOC Java, 58 LOC Swift, 40 functions, 12 routes
-- README updated: added iOS section, fixed platform type (IPA → Staticlib), added Linux binary size
-- Next phase planned: tests → graceful shutdown → logging → IRONHIVE CI → file API
+- cochranblock.org cross-linked across all 7 doc files
+- P23 reference: [KOVA Blueprint](https://github.com/cochranblock/kova/blob/main/docs/KOVA_BLUEPRINT.md#10-p23-triple-lens-research-protocol)
 
 ---
 
