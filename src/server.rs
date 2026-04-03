@@ -251,6 +251,78 @@ async fn f30(
     resp
 }
 
+/// f31=list_files — GET /api/files — list files in site directory
+async fn f31(State(state): State<Arc<t0>>) -> impl IntoResponse {
+    let base = match &state.s3 {
+        Some(d) => d.clone(),
+        None => return (StatusCode::BAD_REQUEST, "no site directory configured".to_string()),
+    };
+    let mut entries = Vec::new();
+    if let Ok(stack) = tokio::fs::read_dir(&base).await.map(|r| vec![r]) {
+        // Iterative directory walk
+        let mut dirs = vec![base.clone()];
+        entries.clear();
+        while let Some(dir) = dirs.pop() {
+            let mut rd = match tokio::fs::read_dir(&dir).await {
+                Ok(rd) => rd,
+                Err(_) => continue,
+            };
+            while let Ok(Some(entry)) = rd.next_entry().await {
+                let path = entry.path();
+                if path.is_dir() {
+                    dirs.push(path);
+                } else if let Ok(meta) = entry.metadata().await {
+                    let rel = path.strip_prefix(&base).unwrap_or(&path);
+                    entries.push(format!(
+                        r#"{{"path":"{}","size":{}}}"#,
+                        rel.display().to_string().replace('\\', "/"),
+                        meta.len()
+                    ));
+                }
+            }
+        }
+        drop(stack);
+    }
+    let json = format!("[{}]", entries.join(","));
+    (StatusCode::OK, json)
+}
+
+/// f32=delete_file — DELETE /api/files/*path — delete a file (localhost only)
+async fn f32(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    State(state): State<Arc<t0>>,
+    axum::extract::Path(file_path): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    if !addr.ip().is_loopback() {
+        return (StatusCode::FORBIDDEN, "delete restricted to localhost".to_string());
+    }
+    let base = match &state.s3 {
+        Some(d) => d.clone(),
+        None => return (StatusCode::BAD_REQUEST, "no site directory configured".to_string()),
+    };
+    let path = file_path.as_str();
+    if path.is_empty() {
+        return (StatusCode::BAD_REQUEST, "no file path specified".to_string());
+    }
+    // Sanitize same as upload
+    let normalized = path.replace('\\', "/");
+    let clean: PathBuf = normalized
+        .split('/')
+        .filter(|c| !c.is_empty() && *c != "." && *c != "..")
+        .collect();
+    if clean.as_os_str().is_empty() {
+        return (StatusCode::BAD_REQUEST, "invalid path".to_string());
+    }
+    let target = base.join(&clean);
+    if !target.exists() {
+        return (StatusCode::NOT_FOUND, "file not found".to_string());
+    }
+    match tokio::fs::remove_file(&target).await {
+        Ok(_) => (StatusCode::OK, format!("deleted {}", clean.display())),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("delete error: {}", e)),
+    }
+}
+
 /// f8=build_router
 pub fn f8(state: t0) -> Router {
     let shared = Arc::new(state);
@@ -260,6 +332,8 @@ pub fn f8(state: t0) -> Router {
         .route("/api/stats", get(f4))
         .route("/api/upload", post(f6))
         .route("/health", get(f5))
+        .route("/api/files", get(f31))
+        .route("/api/files/*path", axum::routing::delete(f32))
         .route("/govdocs", get(govdocs::f23))
         .route("/govdocs/sbom", get(govdocs::f24))
         .route("/govdocs/capability", get(govdocs::f25))
@@ -523,6 +597,26 @@ mod tests {
         )
         .unwrap();
         assert!(body.contains("<svg"));
+    }
+
+    #[tokio::test]
+    async fn api_files_list_empty_dir() {
+        let app = f8(test_state(true));
+        let resp = app.oneshot(req("GET", "/api/files")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.starts_with('['));
+        assert!(body.ends_with(']'));
+    }
+
+    #[tokio::test]
+    async fn api_files_no_site_dir() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/api/files")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
