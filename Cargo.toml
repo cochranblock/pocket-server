@@ -22,7 +22,7 @@ path = "src/main.rs"
 
 [dependencies]
 axum = { version = "0.7", features = ["multipart"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "process", "io-util", "fs"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "process", "io-util", "fs", "signal"] }
 tower-http = { version = "0.5", features = ["compression-zstd", "fs"] }
 
 [target.'cfg(target_os = "android")'.dependencies]

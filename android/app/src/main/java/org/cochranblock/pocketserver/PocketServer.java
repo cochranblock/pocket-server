@@ -19,5 +19,6 @@ public class PocketServer {
      * @param siteDir  path to site files on storage, or "" for default landing page
      */
     public static native void startServer(String siteName, int port, String siteDir);
+    public static native void stopServer();
     public static native String getStats();
 }

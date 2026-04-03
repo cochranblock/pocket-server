@@ -11,7 +11,7 @@ Prioritized work items for pocket-server. Most important at top. Max 20.
 ---
 
 1. ~~`[test]` Add Rust tests~~ **DONE** — 27 tests: 8 stats unit, 14 route integration (all 12 endpoints + upload auth + localhost TCP), 5 govdocs unit (SPDX, parser, md_to_html)
-2. `[fix]` Graceful shutdown — catch SIGTERM/SIGINT via `tokio::signal`, wire `axum::serve().with_graceful_shutdown()`. Add `stopServer()` JNI export for Android `ServerService.onDestroy()`
+2. ~~`[fix]` Graceful shutdown~~ **DONE** — SIGINT/SIGTERM via tokio::signal, with_graceful_shutdown(), stopServer() JNI + Java wired
 3. `[feature]` Request logging middleware — lightweight access log (`method path status duration`) to stderr. Add `--quiet` / `-q` flag to suppress for kiosk mode
 4. `[feature]` File management API — `GET /api/files` (list files + sizes, JSON), `DELETE /api/files/{path}` (localhost only, same auth as upload). Completes CRUD for site management
 5. `[fix]` Upload size limit — add `--max-upload` flag (default 50 MB). Reject with 413 if exceeded. Prevents phone storage exhaustion (P23 paranoia lens red flag)

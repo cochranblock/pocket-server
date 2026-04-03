@@ -258,7 +258,7 @@ pub fn f8(state: t0) -> Router {
         .with_state(shared)
 }
 
-/// f9=run — start the server on the given port, blocking
+/// f9=run — start the server on the given port, blocking. Shuts down on SIGINT/SIGTERM.
 pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>) {
     let state = t0 {
         s0: Arc::new(t1::f10()),
@@ -282,8 +282,28 @@ pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>) {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown_signal())
     .await
     .unwrap();
+    eprintln!("  server stopped");
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = tokio::signal::ctrl_c();
+    #[cfg(unix)]
+    {
+        let mut sigterm =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
+        tokio::select! {
+            _ = ctrl_c => eprintln!("\n  shutting down (SIGINT)..."),
+            _ = sigterm.recv() => eprintln!("\n  shutting down (SIGTERM)..."),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        ctrl_c.await.ok();
+        eprintln!("\n  shutting down...");
+    }
 }
 
 #[cfg(test)]

@@ -70,6 +70,7 @@ public class ServerService extends Service {
 
     @Override
     public void onDestroy() {
+        PocketServer.stopServer();
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }

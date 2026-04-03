@@ -16,6 +16,7 @@ use crate::stats::t1;
 
 static RUNTIME: OnceLock<Runtime> = OnceLock::new();
 static STATS: OnceLock<std::sync::Arc<t1>> = OnceLock::new();
+static SHUTDOWN: OnceLock<std::sync::Arc<tokio::sync::Notify>> = OnceLock::new();
 
 /// f22=get_runtime
 fn f22() -> &'static Runtime {
@@ -51,6 +52,9 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
         let s0 = std::sync::Arc::new(t1::f10());
         let _ = STATS.set(s0.clone());
 
+        let shutdown = std::sync::Arc::new(tokio::sync::Notify::new());
+        let _ = SHUTDOWN.set(shutdown.clone());
+
         let rt = f22();
         rt.spawn(async move {
             let state = crate::server::t0 {
@@ -66,11 +70,23 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
                 listener,
                 app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
             )
+            .with_graceful_shutdown(async move { shutdown.notified().await })
             .await
             .unwrap();
         });
         Ok(())
     });
+}
+
+/// Called from Java: PocketServer.stopServer()
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_stopServer(
+    _env: EnvUnowned<'_>,
+    _class: JClass<'_>,
+) {
+    if let Some(shutdown) = SHUTDOWN.get() {
+        shutdown.notify_one();
+    }
 }
 
 /// Called from Java: PocketServer.getStats() -> JSON string
