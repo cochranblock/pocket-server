@@ -646,6 +646,277 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn dashboard_contains_pwa_meta() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/dashboard")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("manifest.json"));
+        assert!(body.contains("theme-color"));
+        assert!(body.contains("apple-mobile-web-app-capable"));
+    }
+
+    #[tokio::test]
+    async fn dashboard_contains_js_polling() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/dashboard")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("setInterval(poll,2000)"));
+        assert!(body.contains("fetch('/api/stats')"));
+    }
+
+    #[tokio::test]
+    async fn dashboard_contains_css() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/dashboard")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("#0a0a0a"));
+        assert!(body.contains("#00d4aa"));
+    }
+
+    #[tokio::test]
+    async fn dashboard_has_stat_elements() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/dashboard")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("id=\"up\""));
+        assert!(body.contains("id=\"req\""));
+        assert!(body.contains("id=\"bw\""));
+        assert!(body.contains("id=\"pw\""));
+        assert!(body.contains("id=\"cost\""));
+    }
+
+    #[tokio::test]
+    async fn landing_page_contains_pwa_meta() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("manifest.json"));
+    }
+
+    #[tokio::test]
+    async fn landing_page_site_name() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("Test Server"));
+    }
+
+    #[tokio::test]
+    async fn fallback_counts_bytes() {
+        let state = test_state(false);
+        let stats = state.s0.clone();
+        let app = f8(state);
+        let _ = app.oneshot(req("GET", "/")).await.unwrap();
+        assert!(stats.f14() > 0, "request not counted");
+        assert!(stats.f15() > 0, "bytes not counted");
+    }
+
+    #[tokio::test]
+    async fn api_stats_counts_bytes() {
+        let state = test_state(false);
+        let stats = state.s0.clone();
+        let app = f8(state);
+        let _ = app.oneshot(req("GET", "/api/stats")).await.unwrap();
+        assert!(stats.f14() > 0);
+        assert!(stats.f15() > 0);
+    }
+
+    #[tokio::test]
+    async fn api_stats_json_structure() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/api/stats")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        // Verify all 5 JSON fields
+        assert!(body.contains("\"uptime\":"));
+        assert!(body.contains("\"requests\":"));
+        assert!(body.contains("\"bytes_served\":"));
+        assert!(body.contains("\"power_w\":"));
+        assert!(body.contains("\"monthly_cost\":"));
+        // Verify balanced braces
+        assert!(body.starts_with('{'));
+        assert!(body.ends_with('}'));
+    }
+
+    #[tokio::test]
+    async fn health_exact_body() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/health")).await.unwrap();
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(&body[..], b"OK");
+    }
+
+    #[tokio::test]
+    async fn upload_no_site_dir() {
+        let app = f8(test_state(false));
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/upload")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        // Without ConnectInfo → 500 (extractor fail)
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn pwa_manifest_content_type() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/manifest.json")).await.unwrap();
+        let ct = resp.headers().get("content-type").unwrap().to_str().unwrap();
+        assert!(ct.contains("manifest+json") || ct.contains("application/json"));
+    }
+
+    #[tokio::test]
+    async fn pwa_manifest_required_fields() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/manifest.json")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("\"name\""));
+        assert!(body.contains("\"short_name\""));
+        assert!(body.contains("\"start_url\""));
+        assert!(body.contains("\"display\""));
+        assert!(body.contains("\"icons\""));
+        assert!(body.contains("\"theme_color\""));
+    }
+
+    #[tokio::test]
+    async fn pwa_sw_content_type() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/sw.js")).await.unwrap();
+        let ct = resp.headers().get("content-type").unwrap().to_str().unwrap();
+        assert!(ct.contains("javascript"));
+    }
+
+    #[tokio::test]
+    async fn pwa_sw_has_cache_strategy() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/sw.js")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("caches.open"));
+        assert!(body.contains("pocket-server-v1"));
+    }
+
+    #[tokio::test]
+    async fn pwa_icon_content_type() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/pwa/icon.svg")).await.unwrap();
+        let ct = resp.headers().get("content-type").unwrap().to_str().unwrap();
+        assert!(ct.contains("svg"));
+    }
+
+    #[tokio::test]
+    async fn pwa_icon_valid_svg() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/pwa/icon.svg")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("<svg"));
+        assert!(body.contains("</svg>"));
+        assert!(body.contains("viewBox"));
+    }
+
+    #[tokio::test]
+    async fn govdocs_index_links() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/govdocs")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("/govdocs/sbom"));
+        assert!(body.contains("/govdocs/capability"));
+        assert!(body.contains("/govdocs/security"));
+    }
+
+    #[tokio::test]
+    async fn govdocs_index_version() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/govdocs")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains(env!("CARGO_PKG_VERSION")));
+    }
+
+    #[tokio::test]
+    async fn govdocs_sbom_package_count() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/govdocs/sbom")).await.unwrap();
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        // Should have a table with many rows
+        let row_count = body.matches("<tr>").count();
+        assert!(row_count > 10, "expected >10 package rows, got {}", row_count);
+    }
+
+    #[tokio::test]
+    async fn govdocs_sbom_spdx_content_type() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/govdocs/sbom?format=spdx")).await.unwrap();
+        let ct = resp.headers().get("content-type").unwrap().to_str().unwrap();
+        assert!(ct.contains("text/plain"));
+    }
+
+    #[tokio::test]
+    async fn delete_no_site_dir() {
+        let app = f8(test_state(false));
+        let mut req = Request::builder()
+            .method("DELETE")
+            .uri("/api/files/test.txt")
+            .body(Body::empty())
+            .unwrap();
+        req.extensions_mut()
+            .insert(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 12345))));
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn nonexistent_route_404() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/nonexistent")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn post_to_health_method_not_allowed() {
+        let app = f8(test_state(false));
+        let r = Request::builder()
+            .method("POST")
+            .uri("/health")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(r).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
+    async fn get_to_upload_method_not_allowed() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/api/upload")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
     async fn upload_localhost_via_tcp() {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
         let state = test_state(true);
@@ -677,5 +948,284 @@ mod tests {
         // Localhost → 200 OK, "0 file(s) uploaded"
         assert!(resp.starts_with("HTTP/1.1 200"));
         assert!(resp.contains("0 file(s) uploaded"));
+    }
+
+    // Helper: start a real server and return (port, site_dir)
+    async fn start_test_server() -> (u16, PathBuf) {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("ps-test-{}-{}", std::process::id(), id));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let state = t0 {
+            s0: Arc::new(t1::f10()),
+            s1: "Test".to_string(),
+            s2: "test".to_string(),
+            s3: Some(dir.clone()),
+            s7: true,
+            s8: 1024, // 1 KB limit for testing
+        };
+        let app = f8(state);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
+                .await.unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        (port, dir)
+    }
+
+    // Helper: raw HTTP request over TCP
+    async fn tcp_request(port: u16, request: &str) -> String {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port))
+            .await.unwrap();
+        stream.write_all(request.as_bytes()).await.unwrap();
+        let mut buf = vec![0u8; 65536];
+        let n = stream.read(&mut buf).await.unwrap();
+        String::from_utf8_lossy(&buf[..n]).to_string()
+    }
+
+    // Helper: multipart upload body
+    fn multipart_body(filename: &str, content: &[u8]) -> Vec<u8> {
+        let boundary = "----TestBoundary";
+        let mut body = Vec::new();
+        body.extend_from_slice(format!(
+            "--{}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\nContent-Type: application/octet-stream\r\n\r\n",
+            boundary, filename
+        ).as_bytes());
+        body.extend_from_slice(content);
+        body.extend_from_slice(format!("\r\n--{}--\r\n", boundary).as_bytes());
+        body
+    }
+
+    #[tokio::test]
+    async fn upload_real_file() {
+        let (port, dir) = start_test_server().await;
+        let body = multipart_body("hello.txt", b"Hello, world!");
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp.contains("1 file(s) uploaded"), "resp: {}", resp);
+        // Verify file on disk
+        let content = std::fs::read_to_string(dir.join("hello.txt")).unwrap();
+        assert_eq!(content, "Hello, world!");
+    }
+
+    #[tokio::test]
+    async fn upload_subdirectory() {
+        let (port, dir) = start_test_server().await;
+        let body = multipart_body("sub/dir/test.txt", b"nested");
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp.contains("1 file(s) uploaded"), "resp: {}", resp);
+        assert!(dir.join("sub/dir/test.txt").exists());
+    }
+
+    #[tokio::test]
+    async fn upload_path_traversal_blocked() {
+        let (port, dir) = start_test_server().await;
+        let body = multipart_body("../../etc/passwd", b"hacked");
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp.contains("200"), "resp: {}", resp);
+        // File should be inside site dir, not at /etc/passwd
+        assert!(!std::path::Path::new("/tmp/etc/passwd").exists());
+        // .. components stripped, so it lands in site_dir/etc/passwd
+        assert!(dir.join("etc/passwd").exists());
+    }
+
+    #[tokio::test]
+    async fn upload_backslash_traversal_blocked() {
+        let (port, dir) = start_test_server().await;
+        let body = multipart_body("..\\..\\test.txt", b"hacked");
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp.contains("200"), "resp: {}", resp);
+        // Should end up in site_dir/test.txt
+        assert!(dir.join("test.txt").exists());
+    }
+
+    #[tokio::test]
+    async fn upload_dot_filename_skipped() {
+        let (port, _dir) = start_test_server().await;
+        let body = multipart_body(".", b"dot");
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        // Dot-only filename should be skipped
+        assert!(resp.contains("0 file(s) uploaded"), "resp: {}", resp);
+    }
+
+    #[tokio::test]
+    async fn upload_size_limit_rejected() {
+        let (port, _dir) = start_test_server().await;
+        // Server has 1024 byte limit, send 2048 bytes
+        let big_content = vec![b'X'; 2048];
+        let body = multipart_body("big.txt", &big_content);
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp.contains("413"), "expected 413, resp: {}", resp);
+        assert!(resp.contains("file too large"), "resp: {}", resp);
+    }
+
+    #[tokio::test]
+    async fn upload_within_size_limit_accepted() {
+        let (port, dir) = start_test_server().await;
+        // Server has 1024 byte limit, send 512 bytes
+        let small_content = vec![b'Y'; 512];
+        let body = multipart_body("small.txt", &small_content);
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----TestBoundary\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await.unwrap();
+        stream.write_all(req.as_bytes()).await.unwrap();
+        stream.write_all(&body).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        assert!(resp.contains("1 file(s) uploaded"), "resp: {}", resp);
+        assert_eq!(std::fs::read(dir.join("small.txt")).unwrap().len(), 512);
+    }
+
+    #[tokio::test]
+    async fn api_files_lists_uploaded_files() {
+        let (port, dir) = start_test_server().await;
+        // Create files directly
+        std::fs::write(dir.join("a.txt"), "alpha").unwrap();
+        std::fs::write(dir.join("b.txt"), "beta").unwrap();
+        let resp = tcp_request(port, "GET /api/files HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        assert!(resp.contains("200"));
+        assert!(resp.contains("a.txt"));
+        assert!(resp.contains("b.txt"));
+        assert!(resp.contains("\"size\":5")); // "alpha" = 5 bytes
+        assert!(resp.contains("\"size\":4")); // "beta" = 4 bytes
+    }
+
+    #[tokio::test]
+    async fn api_files_lists_subdirectories() {
+        let (port, dir) = start_test_server().await;
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
+        std::fs::write(dir.join("sub/nested.txt"), "deep").unwrap();
+        let resp = tcp_request(port, "GET /api/files HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        assert!(resp.contains("sub/nested.txt"));
+    }
+
+    #[tokio::test]
+    async fn delete_file_success() {
+        let (port, dir) = start_test_server().await;
+        std::fs::write(dir.join("delete-me.txt"), "gone").unwrap();
+        assert!(dir.join("delete-me.txt").exists());
+        let resp = tcp_request(port, "DELETE /api/files/delete-me.txt HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        assert!(resp.contains("200"), "resp: {}", resp);
+        assert!(resp.contains("deleted"));
+        assert!(!dir.join("delete-me.txt").exists());
+    }
+
+    #[tokio::test]
+    async fn delete_file_not_found() {
+        let (port, _dir) = start_test_server().await;
+        let resp = tcp_request(port, "DELETE /api/files/nope.txt HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        assert!(resp.contains("404"), "resp: {}", resp);
+    }
+
+    #[tokio::test]
+    async fn delete_path_traversal_blocked() {
+        let (port, _dir) = start_test_server().await;
+        let resp = tcp_request(port, "DELETE /api/files/../../etc/passwd HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        // Path traversal stripped, becomes etc/passwd which doesn't exist
+        assert!(resp.contains("404"), "resp: {}", resp);
+    }
+
+    #[tokio::test]
+    async fn serve_static_file() {
+        let (port, dir) = start_test_server().await;
+        std::fs::write(dir.join("index.html"), "<h1>Hello</h1>").unwrap();
+        let resp = tcp_request(port, "GET /index.html HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        assert!(resp.contains("200"), "resp: {}", resp);
+    }
+
+    #[tokio::test]
+    async fn serve_index_html_for_directory() {
+        let (port, dir) = start_test_server().await;
+        std::fs::write(dir.join("index.html"), "<h1>Root</h1>").unwrap();
+        let resp = tcp_request(port, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n").await;
+        assert!(resp.contains("200"), "resp: {}", resp);
+    }
+
+    #[tokio::test]
+    async fn router_without_site_dir_has_fallback() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        ).unwrap();
+        assert!(body.contains("No cloud. No hosting bill. Ever."));
+    }
+
+    #[tokio::test]
+    async fn router_with_site_dir_no_fallback() {
+        let app = f8(test_state(true));
+        // With site dir but no files, ServeDir returns 404 for /
+        let resp = app.oneshot(req("GET", "/nonexistent-file.xyz")).await.unwrap();
+        // ServeDir should return 404 for missing files
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 }

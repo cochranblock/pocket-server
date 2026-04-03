@@ -15,7 +15,7 @@ Prioritized work items for pocket-server. Most important at top. Max 20.
 3. ~~`[feature]` Request logging middleware~~ **DONE** — f30 access log (method path status ms), --quiet/-q flag, quiet by default on Android/iOS
 4. ~~`[feature]` File management API~~ **DONE** — f31 GET /api/files (recursive JSON list), f32 DELETE /api/files/*path (localhost only, path sanitized). 29 tests.
 5. ~~`[fix]` Upload size limit~~ **DONE** — --max-upload flag (default 50 MB), 413 Payload Too Large on exceed, Android/iOS default 50 MB
-6. `[build]` IRONHIVE CI script — `ci/build.sh` runs `cargo test && cargo clippy -- -D warnings && cargo build --release` on push. Deploy to lf (n0, lowest load). No external CI needed — the swarm IS the CI. **Depends on [ironhive](https://github.com/cochranblock/ironhive) sync daemon**
+6. ~~`[build]` IRONHIVE CI script~~ **DONE** — `ci/build.sh`: test → clippy -D warnings → release build. Deploy to lf (n0). **Depends on [ironhive](https://github.com/cochranblock/ironhive) sync daemon**
 7. `[fix]` Rate limiting — token bucket or sliding window on all endpoints. P23 paranoia lens flagged no DoS protection. tower-http or custom middleware
 8. `[build]` Xcode project for iOS — generate `PocketServer.xcodeproj`, link `libpocket_server.a`, automate `xcodebuild` in `ios/build-ios.sh`. Currently manual setup only
 9. `[feature]` TLS support — optional `--tls-cert` / `--tls-key` flags. Use `tokio-rustls` behind a `tls` feature flag. Self-signed cert generation via `rcgen` if no cert provided. For local-network deployments without tunnel

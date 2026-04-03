@@ -345,6 +345,212 @@ mod tests {
         let html = md_to_html(md);
         assert!(html.contains("<ul>"));
         assert!(html.contains("<li>item one</li>"));
+        assert!(html.contains("<li>item two</li>"));
+        assert!(html.contains("</ul>"));
+    }
+
+    #[test]
+    fn md_to_html_asterisk_list() {
+        let md = "* alpha\n* beta";
+        let html = md_to_html(md);
+        assert!(html.contains("<ul>"));
+        assert!(html.contains("<li>alpha</li>"));
+        assert!(html.contains("<li>beta</li>"));
+    }
+
+    #[test]
+    fn md_to_html_code_block() {
+        let md = "```\nlet x = 1;\n```";
+        let html = md_to_html(md);
+        assert!(html.contains("<pre>"));
+        assert!(html.contains("let x = 1;"));
+        assert!(html.contains("</pre>"));
+    }
+
+    #[test]
+    fn md_to_html_code_block_escapes_html() {
+        let md = "```\n<script>alert(1)</script>\n```";
+        let html = md_to_html(md);
+        assert!(html.contains("&lt;script&gt;"));
+        assert!(!html.contains("<script>"));
+    }
+
+    #[test]
+    fn md_to_html_empty_input() {
+        let html = md_to_html("");
+        assert!(html.is_empty());
+    }
+
+    #[test]
+    fn md_to_html_paragraph() {
+        let html = md_to_html("Hello world");
+        assert!(html.contains("<p>Hello world</p>"));
+    }
+
+    #[test]
+    fn md_to_html_bold_stripped() {
+        let md = "- **bold item**";
+        let html = md_to_html(md);
+        assert!(html.contains("<li>bold item</li>"));
+        assert!(!html.contains("**"));
+    }
+
+    #[test]
+    fn md_to_html_mixed_content() {
+        let md = "# Title\n\nSome text.\n\n- item\n\n| A | B |\n|---|---|\n| 1 | 2 |";
+        let html = md_to_html(md);
+        assert!(html.contains("<h1>Title</h1>"));
+        assert!(html.contains("<p>Some text.</p>"));
+        assert!(html.contains("<li>item</li>"));
+        assert!(html.contains("<table>"));
+    }
+
+    #[test]
+    fn md_to_html_unclosed_table_at_eof() {
+        let md = "| A | B |\n|---|---|\n| 1 | 2 |";
+        let html = md_to_html(md);
+        assert!(html.contains("<table>"));
+        assert!(html.contains("</table>"));
+    }
+
+    #[test]
+    fn md_to_html_unclosed_list_at_eof() {
+        let md = "- last item";
+        let html = md_to_html(md);
+        assert!(html.contains("<ul>"));
+        assert!(html.contains("</ul>"));
+    }
+
+    #[test]
+    fn md_to_html_unclosed_pre_at_eof() {
+        let md = "```\ncode here";
+        let html = md_to_html(md);
+        assert!(html.contains("<pre>"));
+        assert!(html.contains("</pre>"));
+    }
+
+    #[test]
+    fn md_to_html_table_separator_skipped() {
+        let md = "| H1 | H2 |\n|---|---|\n| D1 | D2 |";
+        let html = md_to_html(md);
+        // Separator row should not produce a <tr>
+        let tr_count = html.matches("<tr>").count();
+        assert_eq!(tr_count, 2); // header + data, not separator
+    }
+
+    #[test]
+    fn md_to_html_h3() {
+        let html = md_to_html("### Deep heading");
+        assert!(html.contains("<h3>Deep heading</h3>"));
+    }
+
+    #[test]
+    fn md_to_html_blank_lines_ignored() {
+        let html = md_to_html("\n\n\n");
+        assert!(html.is_empty());
+    }
+
+    #[test]
+    fn parse_lock_packages_has_tokio() {
+        let pkgs = parse_lock_packages();
+        assert!(pkgs.iter().any(|(n, _)| n == "tokio"));
+    }
+
+    #[test]
+    fn parse_lock_packages_has_tower_http() {
+        let pkgs = parse_lock_packages();
+        assert!(pkgs.iter().any(|(n, _)| n == "tower-http"));
+    }
+
+    #[test]
+    fn parse_lock_packages_versions_nonempty() {
+        let pkgs = parse_lock_packages();
+        for (name, ver) in &pkgs {
+            assert!(!name.is_empty(), "empty package name");
+            assert!(!ver.is_empty(), "empty version for {}", name);
+        }
+    }
+
+    #[test]
+    fn spdx_has_creator() {
+        let spdx = generate_spdx();
+        assert!(spdx.contains("Creator: Organization: CochranBlock"));
+        assert!(spdx.contains("Creator: Tool: pocket-server-builtin-sbom"));
+    }
+
+    #[test]
+    fn spdx_has_relationships() {
+        let spdx = generate_spdx();
+        let dep_count = spdx.matches("DEPENDS_ON").count();
+        assert!(dep_count > 5, "expected many DEPENDS_ON, got {}", dep_count);
+    }
+
+    #[test]
+    fn spdx_has_created_timestamp() {
+        let spdx = generate_spdx();
+        assert!(spdx.contains("Created: "));
+        // Should contain a timestamp like 2026-04-03T...
+        let ts_line = spdx.lines().find(|l| l.starts_with("Created: ")).unwrap();
+        let ts = ts_line.strip_prefix("Created: ").unwrap();
+        assert!(ts.contains('T'));
+        assert!(ts.ends_with('Z'));
+    }
+
+    #[test]
+    fn spdx_license_unlicense() {
+        let spdx = generate_spdx();
+        assert!(spdx.contains("PackageLicenseConcluded: Unlicense"));
+        assert!(spdx.contains("PackageLicenseDeclared: Unlicense"));
+    }
+
+    #[test]
+    fn spdx_deps_match_lock() {
+        let spdx = generate_spdx();
+        let pkgs = parse_lock_packages();
+        // Every parsed dep should appear in SPDX
+        for (name, _) in &pkgs {
+            assert!(
+                spdx.contains(&format!("PackageName: {}", name)),
+                "missing dep in SPDX: {}",
+                name
+            );
+        }
+    }
+
+    #[test]
+    fn created_timestamp_format() {
+        let ts = super::created_timestamp();
+        // Format: YYYY-MM-DDTHH:MM:SSZ
+        assert_eq!(ts.len(), 20);
+        assert_eq!(&ts[4..5], "-");
+        assert_eq!(&ts[7..8], "-");
+        assert_eq!(&ts[10..11], "T");
+        assert_eq!(&ts[13..14], ":");
+        assert_eq!(&ts[16..17], ":");
+        assert!(ts.ends_with('Z'));
+    }
+
+    #[test]
+    fn capability_md_contains_vendor() {
+        assert!(CAPABILITY_MD.contains("CochranBlock"));
+        assert!(CAPABILITY_MD.contains("cochranblock.org"));
+    }
+
+    #[test]
+    fn security_md_contains_rust() {
+        assert!(SECURITY_MD.contains("Rust"));
+        assert!(SECURITY_MD.contains("Memory Safety"));
+    }
+
+    #[test]
+    fn cargo_toml_embedded() {
+        assert!(CARGO_TOML.contains("pocket-server"));
+        assert!(CARGO_TOML.contains("axum"));
+    }
+
+    #[test]
+    fn cargo_lock_embedded() {
+        assert!(CARGO_LOCK.contains("[[package]]"));
     }
 }
 

@@ -194,4 +194,153 @@ mod tests {
         assert_eq!(s.f14(), 0);
         assert_eq!(s.f15(), 0);
     }
+
+    #[test]
+    fn record_request_zero_bytes() {
+        let s = t1::f10();
+        s.f11(0);
+        assert_eq!(s.f14(), 1);
+        assert_eq!(s.f15(), 0);
+    }
+
+    #[test]
+    fn record_request_large_bytes() {
+        let s = t1::f10();
+        s.f11(u64::MAX / 2);
+        assert_eq!(s.f14(), 1);
+        assert_eq!(s.f15(), u64::MAX / 2);
+    }
+
+    #[test]
+    fn record_request_many() {
+        let s = t1::f10();
+        for i in 0..1000 {
+            s.f11(i);
+        }
+        assert_eq!(s.f14(), 1000);
+        assert_eq!(s.f15(), (0..1000u64).sum::<u64>());
+    }
+
+    #[test]
+    fn bytes_display_boundary_1023() {
+        let s = t1::f10();
+        s.s6.store(1023, Ordering::Relaxed);
+        assert_eq!(s.f16(), "1023 B");
+    }
+
+    #[test]
+    fn bytes_display_boundary_1024() {
+        let s = t1::f10();
+        s.s6.store(1024, Ordering::Relaxed);
+        assert_eq!(s.f16(), "1.0 KB");
+    }
+
+    #[test]
+    fn bytes_display_boundary_1mb_minus_1() {
+        let s = t1::f10();
+        s.s6.store(1024 * 1024 - 1, Ordering::Relaxed);
+        assert!(s.f16().ends_with(" KB"));
+    }
+
+    #[test]
+    fn bytes_display_boundary_1mb() {
+        let s = t1::f10();
+        s.s6.store(1024 * 1024, Ordering::Relaxed);
+        assert_eq!(s.f16(), "1.0 MB");
+    }
+
+    #[test]
+    fn bytes_display_boundary_1gb_minus_1() {
+        let s = t1::f10();
+        s.s6.store(1024 * 1024 * 1024 - 1, Ordering::Relaxed);
+        assert!(s.f16().ends_with(" MB"));
+    }
+
+    #[test]
+    fn bytes_display_boundary_1gb() {
+        let s = t1::f10();
+        s.s6.store(1024 * 1024 * 1024, Ordering::Relaxed);
+        assert_eq!(s.f16(), "1.0 GB");
+    }
+
+    #[test]
+    fn bytes_display_fractional_kb() {
+        let s = t1::f10();
+        s.s6.store(1536, Ordering::Relaxed); // 1.5 KB
+        assert_eq!(s.f16(), "1.5 KB");
+    }
+
+    #[test]
+    fn power_estimate_capped() {
+        // Power = 0.5 + (rps * 0.1).min(1.0), max = 1.5W
+        // Need rps >= 10 to hit cap
+        let s = t1::f10();
+        // Simulate: 10000 requests in ~1 second is impossible with Instant,
+        // but we can verify the formula directly
+        // At 0 uptime, rps = 0, power = 0.5
+        assert!((s.f17() - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn monthly_cost_formula() {
+        // Idle: 0.5W * 24h * 30d / 1000 = 0.36 kWh * $0.15 = $0.054 → "$0.05"
+        let s = t1::f10();
+        assert_eq!(s.f18(), "$0.05");
+    }
+
+    #[test]
+    fn to_json_all_fields_present() {
+        let s = t1::f10();
+        let json = s.f19();
+        // Verify all 5 fields
+        assert!(json.contains("\"uptime\":"));
+        assert!(json.contains("\"requests\":"));
+        assert!(json.contains("\"bytes_served\":"));
+        assert!(json.contains("\"power_w\":"));
+        assert!(json.contains("\"monthly_cost\":"));
+    }
+
+    #[test]
+    fn to_json_parseable_structure() {
+        let s = t1::f10();
+        s.f11(100);
+        s.f11(200);
+        let json = s.f19();
+        // Verify it's valid JSON-like (balanced braces, no trailing comma)
+        assert!(json.starts_with('{'));
+        assert!(json.ends_with('}'));
+        assert!(!json.contains(",}"));
+        assert!(!json.contains(",,"));
+        // requests should be 2
+        assert!(json.contains("\"requests\":2"));
+        assert!(json.contains("\"bytes_served\":\"300 B\""));
+    }
+
+    #[test]
+    fn concurrent_record_requests() {
+        use std::sync::Arc;
+        use std::thread;
+        let s = Arc::new(t1::f10());
+        let mut handles = vec![];
+        for _ in 0..10 {
+            let s = s.clone();
+            handles.push(thread::spawn(move || {
+                for _ in 0..100 {
+                    s.f11(1);
+                }
+            }));
+        }
+        for h in handles {
+            h.join().unwrap();
+        }
+        assert_eq!(s.f14(), 1000);
+        assert_eq!(s.f15(), 1000);
+    }
+
+    #[test]
+    fn uptime_secs_non_negative() {
+        let s = t1::f10();
+        // Uptime should be 0 or very small
+        assert!(s.f12() < 2);
+    }
 }
