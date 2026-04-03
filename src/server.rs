@@ -32,6 +32,8 @@ pub struct t0 {
     pub s2: String,
     /// s3=site_dir — directory on phone storage containing user's site files
     pub s3: Option<PathBuf>,
+    /// s7=quiet — suppress access log output
+    pub s7: bool,
 }
 
 /// f0=dashboard_page — kiosk dashboard, the phone screen shows this
@@ -225,6 +227,30 @@ async fn f7(
     resp
 }
 
+/// f30=access_log — middleware that logs method, path, status, duration to stderr
+async fn f30(
+    State(state): State<Arc<t0>>,
+    req: Request,
+    next: axum::middleware::Next,
+) -> Response {
+    if state.s7 {
+        return next.run(req).await;
+    }
+    let method = req.method().clone();
+    let path = req.uri().path().to_string();
+    let start = std::time::Instant::now();
+    let resp = next.run(req).await;
+    let elapsed = start.elapsed();
+    eprintln!(
+        "  {} {} {} {:.1}ms",
+        method,
+        path,
+        resp.status().as_u16(),
+        elapsed.as_secs_f64() * 1000.0
+    );
+    resp
+}
+
 /// f8=build_router
 pub fn f8(state: t0) -> Router {
     let shared = Arc::new(state);
@@ -254,17 +280,19 @@ pub fn f8(state: t0) -> Router {
         app = app.route("/", get(f3));
     }
 
-    app.layer(CompressionLayer::new().zstd(true))
+    app.layer(axum::middleware::from_fn_with_state(shared.clone(), f30))
+        .layer(CompressionLayer::new().zstd(true))
         .with_state(shared)
 }
 
 /// f9=run — start the server on the given port, blocking. Shuts down on SIGINT/SIGTERM.
-pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>) {
+pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>, quiet: bool) {
     let state = t0 {
         s0: Arc::new(t1::f10()),
         s1,
         s2,
         s3,
+        s7: quiet,
     };
     let app = f8(state);
     let addr = format!("0.0.0.0:{}", port);
@@ -325,6 +353,7 @@ mod tests {
             } else {
                 None
             },
+            s7: true, // quiet in tests
         }
     }
 

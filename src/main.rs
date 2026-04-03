@@ -7,11 +7,12 @@
 use std::path::PathBuf;
 
 /// f21=parse_args
-fn f21() -> (String, u16, Option<PathBuf>, bool) {
+fn f21() -> (String, u16, Option<PathBuf>, bool, bool) {
     let mut name = "Pocket Server".to_string();
     let mut port: u16 = 8080;
     let mut site_dir: Option<PathBuf> = None;
     let mut tunnel = false;
+    let mut quiet = false;
 
     let args: Vec<String> = std::env::args().collect();
     let mut i = 1;
@@ -32,6 +33,9 @@ fn f21() -> (String, u16, Option<PathBuf>, bool) {
             "--tunnel" | "-t" => {
                 tunnel = true;
             }
+            "--quiet" | "-q" => {
+                quiet = true;
+            }
             "--sbom" => {
                 print!("{}", pocket_server::govdocs::generate_spdx());
                 std::process::exit(0);
@@ -43,6 +47,7 @@ fn f21() -> (String, u16, Option<PathBuf>, bool) {
                 eprintln!("  --port, -p <port>      Port to bind (default: 8080)");
                 eprintln!("  --site-dir, -d <path>  Directory with site files to serve");
                 eprintln!("  --tunnel, -t           Start Cloudflare quick tunnel");
+                eprintln!("  --quiet, -q            Suppress access log");
                 eprintln!("  --sbom                 Print SPDX SBOM and exit");
                 eprintln!("  --help, -h             This message");
                 std::process::exit(0);
@@ -54,12 +59,12 @@ fn f21() -> (String, u16, Option<PathBuf>, bool) {
         }
         i += 1;
     }
-    (name, port, site_dir, tunnel)
+    (name, port, site_dir, tunnel, quiet)
 }
 
 #[tokio::main]
 async fn main() {
-    let (name, port, site_dir, tunnel) = f21();
+    let (name, port, site_dir, tunnel, quiet) = f21();
 
     let dir_label = site_dir
         .as_ref()
@@ -90,5 +95,5 @@ async fn main() {
         tokio::spawn(pocket_server::tunnel::f20(port));
     }
 
-    pocket_server::server::f9(name, "pocket-server".into(), port, site_dir).await;
+    pocket_server::server::f9(name, "pocket-server".into(), port, site_dir, quiet).await;
 }
