@@ -164,3 +164,28 @@ Found bug: `startServer` created a second `Stats::new()` for AppState instead of
 - cargo outdated: axum 0.7→0.8, tower-http 0.5→0.6 available (major bumps, left as-is)
 - cargo tree --duplicates: 0 duplicates
 - Working tree clean, clippy clean
+
+## 2026-03-31 — TOI + POA Update
+
+| Hash | Description |
+|------|-------------|
+| `0b1eec9` | update TOI + POA: add d8c9220 polish commit, verify date 2026-03-31 |
+
+- Timeline and Proof of Artifacts brought current with polish pass commit
+
+## 2026-04-02 — IRONHIVE Swarm Build + Doc Audit
+
+| Hash | Description |
+|------|-------------|
+| `f4943e4` | README: add iOS section, fix platform types, add Linux binary size + LOC stats |
+
+- Synced pocket-server to IRONHIVE cluster (lf, gd, st) via rsync
+- Built x86_64-unknown-linux-gnu release on node lf (n0): 1,485,656 bytes (1.42 MB), 18s
+- Built aarch64-apple-darwin release locally: 1,088,560 bytes (1.04 MB), 7s
+- Full guest analysis: 1,063 LOC Rust, 250 LOC Java, 58 LOC Swift, 40 functions, 12 routes
+- README updated: added iOS section, fixed platform type (IPA → Staticlib), added Linux binary size
+- Next phase planned: tests → graceful shutdown → logging → IRONHIVE CI → file API
+
+---
+
+Part of [CochranBlock](https://cochranblock.org) zero-cloud architecture.

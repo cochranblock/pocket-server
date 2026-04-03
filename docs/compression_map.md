@@ -78,3 +78,7 @@ P13 tokenization. Every public symbol has a compressed identifier.
 - JNI symbols in android.rs cannot be renamed (Java naming convention)
 - `main()` kept as `main` (Rust entry point convention)
 - JSON in f19 is hand-formatted (no serde dependency)
+
+---
+
+Part of [CochranBlock](https://cochranblock.org) zero-cloud architecture.

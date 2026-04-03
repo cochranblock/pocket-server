@@ -1,6 +1,6 @@
 # Pocket Server
 
-Your website lives on your phone. No hosting bill. Ever.
+Your website lives on your phone. No hosting bill. Ever. Part of [CochranBlock](https://cochranblock.org) zero-cloud architecture.
 
 A compiled Rust web server that runs on Android (or any machine). Serves static sites from local storage with a live kiosk dashboard showing uptime, requests, bytes, power draw, and estimated monthly cost.
 
@@ -136,9 +136,9 @@ Build all: `./build-all-targets.sh`
 
 ## Stats
 
-- **Binary:** 1.04 MB macOS ARM, 1.16 MB macOS Intel, 1.4 MB Linux x86_64 (release, stripped, LTO)
+- **Binary:** 1.04 MB macOS ARM, 1.16 MB macOS Intel, 1.42 MB Linux x86_64 (release, stripped, LTO)
 - **AAB:** 721 KB (Android App Bundle)
-- **Source:** 1,063 LOC Rust, 250 LOC Java, 59 LOC Swift
+- **Source:** 1,063 LOC Rust, 250 LOC Java, 58 LOC Swift
 - **Direct deps:** 3 (axum, tokio, tower-http) + jni on Android
 - **Power estimate:** 0.5W idle + 0.1W/req/sec
 - **Monthly cost:** ~$0.05 at idle ($0.15/kWh)

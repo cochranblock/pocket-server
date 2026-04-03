@@ -2,7 +2,7 @@
 
 Measurable state of the project. Updated each session.
 
-Last verified: 2026-03-31
+Last verified: 2026-04-02
 
 ---
 
@@ -14,6 +14,7 @@ Last verified: 2026-03-31
 | x86_64-apple-darwin (release bin) | 1,221,284 bytes (1.16 MB) | 2026-03-29 |
 | aarch64-linux-android (.so) | 1,722,544 bytes (1.64 MB) | 2026-03-29 |
 | Android AAB (app-release.aab) | 737,815 bytes (721 KB) | 2026-03-29 |
+| x86_64-unknown-linux-gnu (release bin) | 1,485,656 bytes (1.42 MB) | 2026-04-02 |
 
 Profile: `opt-level=z`, `lto=true`, `codegen-units=1`, `strip=true`, `panic=abort`
 
@@ -32,7 +33,8 @@ Profile: `opt-level=z`, `lto=true`, `codegen-units=1`, `strip=true`, `panic=abor
 | lib.rs | 18 | Module declarations |
 | **Rust total** | **1,063** | |
 | Java (4 files) | 250 | Activity, Service, Receiver, JNI |
-| **Grand total** | **1,313** | |
+| Swift (1 file) | 58 | AppDelegate (iOS) |
+| **Grand total** | **1,371** | |
 
 ## Function Count
 
@@ -142,3 +144,7 @@ Full analysis: `USER_STORY_ANALYSIS.md`
 | /manifest.json | GET | f27 | public |
 | /sw.js | GET | f28 | public |
 | /pwa/icon.svg | GET | f29 | public |
+
+---
+
+Part of [CochranBlock](https://cochranblock.org) zero-cloud architecture.

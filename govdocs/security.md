@@ -54,3 +54,7 @@ Full SBOM available at `/govdocs/sbom` or via `--sbom` flag.
 - No rate limiting
 - No request logging to disk
 - Upload size is unbounded (limited only by phone storage)
+
+---
+
+Product of [CochranBlock](https://cochranblock.org) zero-cloud architecture.

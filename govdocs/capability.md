@@ -6,7 +6,7 @@
 
 ## Vendor
 
-**CochranBlock** — cochranblock.org
+**CochranBlock** — [cochranblock.org](https://cochranblock.org)
 Zero-cloud architecture. 14 Unlicense repos. All products self-hosted on hardware the customer owns.
 
 ## Core Capabilities
@@ -24,7 +24,8 @@ Zero-cloud architecture. 14 Unlicense repos. All products self-hosted on hardwar
 - **Binary size:** ~1 MB (stripped, LTO, size-optimized)
 - **Direct dependencies:** 3 (axum, tokio, tower-http)
 - **Transport compression:** zstd
-- **Architecture:** aarch64 (ARM64), armv7
+- **Architecture:** aarch64 (ARM64), armv7, iOS (staticlib)
+- **Repository:** [github.com/cochranblock/pocket-server](https://github.com/cochranblock/pocket-server)
 - **License:** Unlicense (public domain, no restrictions)
 
 ## Pricing Tiers
