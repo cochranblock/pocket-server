@@ -80,15 +80,36 @@ Without `--site-dir`, a default landing page is served.
 
 ## Android
 
-The server compiles as a shared library (`libpocket_server.so`) for Android. The `android/` directory contains:
+The server compiles as a shared library (`libpocket_server.so`) via JNI. The `android/` directory contains a full app:
 
-- **DashboardActivity** — fullscreen WebView kiosk dashboard
-- **ServerService** — foreground service with wake lock
+- **PocketServer.java** — JNI stub (`startServer`, `getStats`)
+- **ServerService** — foreground service with wake lock and sticky notification
+- **DashboardActivity** — fullscreen WebView kiosk loading `/dashboard`
 - **BootReceiver** — auto-start on reboot
 
-Build: `cargo ndk -t arm64-v8a --platform 26 -- build --release && cd android && gradle bundleRelease`
+Build:
 
-Requires cargo-ndk, Android NDK, Android SDK (API 35).
+```
+cargo ndk -t arm64-v8a --platform 26 -- build --release
+cd android && gradle bundleRelease
+```
+
+Requires cargo-ndk, Android NDK, Android SDK (API 35). Produces a 721 KB AAB.
+
+## iOS
+
+The server compiles as a static library (`libpocket_server.a`) with a C FFI entry point. The `ios/` directory contains:
+
+- **AppDelegate.swift** — launches server on background thread, displays `/dashboard` in WKWebView
+- **Info.plist** — configured for fullscreen kiosk, local networking allowed
+
+Build the staticlib:
+
+```
+cargo build --release --target aarch64-apple-ios --lib
+```
+
+Xcode project setup is manual — link `target/aarch64-apple-ios/release/libpocket_server.a`, add the Swift source, and build. See `ios/build-ios.sh` for details.
 
 ## PWA
 
@@ -104,7 +125,7 @@ The dashboard is installable as a Progressive Web App from any browser. Open `/d
 | Linux ARM64 | `aarch64-unknown-linux-gnu` | Binary | Cross-compile (RPi 4/5, Graviton) |
 | Linux ARM32 | `armv7-unknown-linux-gnueabihf` | Binary | Cross-compile (older RPi, IoT) |
 | Android ARM64 | `aarch64-linux-android` | AAB | cargo-ndk + Gradle |
-| iOS | `aarch64-apple-ios` | IPA | Xcode + staticlib |
+| iOS | `aarch64-apple-ios` | Staticlib | Manual Xcode link |
 | Windows | `x86_64-pc-windows-gnu` | Binary | Cross-compile via `cross` |
 | FreeBSD | `x86_64-unknown-freebsd` | Binary | Cross-compile via `cross` |
 | RISC-V | `riscv64gc-unknown-linux-gnu` | Binary | Cross-compile via `cross` |
@@ -115,8 +136,9 @@ Build all: `./build-all-targets.sh`
 
 ## Stats
 
-- **Binary:** 1.04 MB macOS ARM, 1.16 MB macOS Intel (release, stripped, LTO)
+- **Binary:** 1.04 MB macOS ARM, 1.16 MB macOS Intel, 1.4 MB Linux x86_64 (release, stripped, LTO)
 - **AAB:** 721 KB (Android App Bundle)
+- **Source:** 1,063 LOC Rust, 250 LOC Java, 59 LOC Swift
 - **Direct deps:** 3 (axum, tokio, tower-http) + jni on Android
 - **Power estimate:** 0.5W idle + 0.1W/req/sec
 - **Monthly cost:** ~$0.05 at idle ($0.15/kWh)
