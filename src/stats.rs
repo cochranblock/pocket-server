@@ -106,3 +106,92 @@ impl t1 {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_starts_at_zero() {
+        let s = t1::f10();
+        assert_eq!(s.f14(), 0);
+        assert_eq!(s.f15(), 0);
+    }
+
+    #[test]
+    fn record_request_increments() {
+        let s = t1::f10();
+        s.f11(1024);
+        s.f11(2048);
+        assert_eq!(s.f14(), 2);
+        assert_eq!(s.f15(), 3072);
+    }
+
+    #[test]
+    fn bytes_display_units() {
+        let s = t1::f10();
+        assert_eq!(s.f16(), "0 B");
+
+        s.f11(500);
+        assert_eq!(s.f16(), "500 B");
+
+        s.f11(1024 - 500);
+        assert_eq!(s.f16(), "1.0 KB");
+
+        // Push into MB range
+        let s2 = t1::f10();
+        s2.s6.store(1024 * 1024 * 5, Ordering::Relaxed);
+        assert_eq!(s2.f16(), "5.0 MB");
+
+        // Push into GB range
+        let s3 = t1::f10();
+        s3.s6.store(1024 * 1024 * 1024 * 2, Ordering::Relaxed);
+        assert_eq!(s3.f16(), "2.0 GB");
+    }
+
+    #[test]
+    fn uptime_display_format() {
+        let s = t1::f10();
+        let d = s.f13();
+        // Fresh stats = "0h 0m"
+        assert_eq!(d, "0h 0m");
+    }
+
+    #[test]
+    fn power_estimate_idle() {
+        let s = t1::f10();
+        // At zero RPS, power = 0.5W base
+        let w = s.f17();
+        assert!((w - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn monthly_cost_format() {
+        let s = t1::f10();
+        let cost = s.f18();
+        assert!(cost.starts_with('$'));
+        // Idle: 0.5W * 24 * 30 / 1000 = 0.36 kWh * 0.15 = $0.05
+        assert_eq!(cost, "$0.05");
+    }
+
+    #[test]
+    fn to_json_valid() {
+        let s = t1::f10();
+        s.f11(512);
+        let json = s.f19();
+        assert!(json.starts_with('{'));
+        assert!(json.ends_with('}'));
+        assert!(json.contains("\"uptime\""));
+        assert!(json.contains("\"requests\":1"));
+        assert!(json.contains("\"bytes_served\":\"512 B\""));
+        assert!(json.contains("\"power_w\":"));
+        assert!(json.contains("\"monthly_cost\":\"$"));
+    }
+
+    #[test]
+    fn default_is_new() {
+        let s = t1::default();
+        assert_eq!(s.f14(), 0);
+        assert_eq!(s.f15(), 0);
+    }
+}

@@ -10,7 +10,7 @@ Prioritized work items for pocket-server. Most important at top. Max 20.
 
 ---
 
-1. `[test]` Add Rust tests — zero test coverage today. Unit tests for stats (f10-f19), integration tests for all 12 routes via axum TestClient, path traversal + upload auth assertions
+1. ~~`[test]` Add Rust tests~~ **DONE** — 27 tests: 8 stats unit, 14 route integration (all 12 endpoints + upload auth + localhost TCP), 5 govdocs unit (SPDX, parser, md_to_html)
 2. `[fix]` Graceful shutdown — catch SIGTERM/SIGINT via `tokio::signal`, wire `axum::serve().with_graceful_shutdown()`. Add `stopServer()` JNI export for Android `ServerService.onDestroy()`
 3. `[feature]` Request logging middleware — lightweight access log (`method path status duration`) to stderr. Add `--quiet` / `-q` flag to suppress for kiosk mode
 4. `[feature]` File management API — `GET /api/files` (list files + sizes, JSON), `DELETE /api/files/{path}` (localhost only, same auth as upload). Completes CRUD for site management

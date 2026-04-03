@@ -297,6 +297,57 @@ pub fn generate_spdx() -> String {
     out
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_lock_packages_returns_deps() {
+        let pkgs = parse_lock_packages();
+        assert!(!pkgs.is_empty());
+        // Should not include self
+        assert!(!pkgs.iter().any(|(n, _)| n == "pocket-server"));
+        // Should include axum (direct dep)
+        assert!(pkgs.iter().any(|(n, _)| n == "axum"));
+    }
+
+    #[test]
+    fn spdx_output_valid() {
+        let spdx = generate_spdx();
+        assert!(spdx.starts_with("SPDXVersion: SPDX-2.3"));
+        assert!(spdx.contains("DataLicense: CC0-1.0"));
+        assert!(spdx.contains("PackageName: pocket-server"));
+        assert!(spdx.contains("PackageLicenseConcluded: Unlicense"));
+        assert!(spdx.contains("DEPENDS_ON"));
+        assert!(spdx.contains("cochranblock.org"));
+    }
+
+    #[test]
+    fn md_to_html_headings() {
+        let html = md_to_html("# Title\n## Subtitle\n### Sub-sub");
+        assert!(html.contains("<h1>Title</h1>"));
+        assert!(html.contains("<h2>Subtitle</h2>"));
+        assert!(html.contains("<h3>Sub-sub</h3>"));
+    }
+
+    #[test]
+    fn md_to_html_table() {
+        let md = "| A | B |\n|---|---|\n| 1 | 2 |";
+        let html = md_to_html(md);
+        assert!(html.contains("<table>"));
+        assert!(html.contains("<th>A</th>"));
+        assert!(html.contains("<td>1</td>"));
+    }
+
+    #[test]
+    fn md_to_html_list() {
+        let md = "- item one\n- item two";
+        let html = md_to_html(md);
+        assert!(html.contains("<ul>"));
+        assert!(html.contains("<li>item one</li>"));
+    }
+}
+
 fn created_timestamp() -> String {
     // Use build-time env or fallback
     let secs = std::time::SystemTime::now()

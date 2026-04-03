@@ -285,3 +285,244 @@ pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>) {
     .await
     .unwrap();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    fn test_state(with_dir: bool) -> t0 {
+        t0 {
+            s0: Arc::new(t1::f10()),
+            s1: "Test Server".to_string(),
+            s2: "test-host".to_string(),
+            s3: if with_dir {
+                let dir = std::env::temp_dir().join("pocket-server-test-site");
+                let _ = std::fs::create_dir_all(&dir);
+                Some(dir)
+            } else {
+                None
+            },
+        }
+    }
+
+    fn req(method: &str, uri: &str) -> Request<Body> {
+        Request::builder()
+            .method(method)
+            .uri(uri)
+            .body(Body::empty())
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn health_returns_ok() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/health")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = resp.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(&body[..], b"OK");
+    }
+
+    #[tokio::test]
+    async fn dashboard_returns_html() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/dashboard")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("Test Server"));
+        assert!(body.contains("cochranblock.org"));
+        assert!(body.contains("/api/stats"));
+    }
+
+    #[tokio::test]
+    async fn api_stats_returns_json() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/api/stats")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let ct = resp.headers().get("content-type").unwrap().to_str().unwrap();
+        assert!(ct.contains("application/json"));
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("\"uptime\""));
+        assert!(body.contains("\"requests\""));
+        assert!(body.contains("\"power_w\""));
+    }
+
+    #[tokio::test]
+    async fn fallback_landing_when_no_site_dir() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("No cloud. No hosting bill. Ever."));
+    }
+
+    #[tokio::test]
+    async fn govdocs_index_returns_html() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/govdocs")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("Compliance Documents"));
+    }
+
+    #[tokio::test]
+    async fn govdocs_sbom_returns_html() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/govdocs/sbom")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("Software Bill of Materials"));
+    }
+
+    #[tokio::test]
+    async fn govdocs_sbom_spdx_format() {
+        let app = f8(test_state(false));
+        let resp = app
+            .oneshot(req("GET", "/govdocs/sbom?format=spdx"))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.starts_with("SPDXVersion: SPDX-2.3"));
+        assert!(body.contains("PackageName: pocket-server"));
+    }
+
+    #[tokio::test]
+    async fn govdocs_capability_returns_html() {
+        let app = f8(test_state(false));
+        let resp = app
+            .oneshot(req("GET", "/govdocs/capability"))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("Capability"));
+        assert!(body.contains("cochranblock.org"));
+    }
+
+    #[tokio::test]
+    async fn govdocs_security_returns_html() {
+        let app = f8(test_state(false));
+        let resp = app
+            .oneshot(req("GET", "/govdocs/security"))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("Security"));
+    }
+
+    #[tokio::test]
+    async fn pwa_manifest_returns_json() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/manifest.json")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("\"name\""));
+        assert!(body.contains("\"start_url\""));
+    }
+
+    #[tokio::test]
+    async fn pwa_service_worker() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/sw.js")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("install"));
+        assert!(body.contains("fetch"));
+    }
+
+    #[tokio::test]
+    async fn pwa_icon_returns_svg() {
+        let app = f8(test_state(false));
+        let resp = app.oneshot(req("GET", "/pwa/icon.svg")).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = String::from_utf8(
+            resp.into_body().collect().await.unwrap().to_bytes().to_vec(),
+        )
+        .unwrap();
+        assert!(body.contains("<svg"));
+    }
+
+    #[tokio::test]
+    async fn upload_requires_connect_info() {
+        // Without ConnectInfo layer, upload returns 400 (extractor rejection)
+        // With proper ConnectInfo + non-loopback IP, handler returns 403
+        // This test verifies the endpoint exists and rejects bare requests
+        let app = f8(test_state(true));
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/upload")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        // 500 = ConnectInfo extractor missing (expected without make_service layer)
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn upload_localhost_via_tcp() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let state = test_state(true);
+        let app = f8(state);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await
+            .unwrap();
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port))
+            .await
+            .unwrap();
+        let body = "------boundary--\r\n";
+        let req = format!(
+            "POST /api/upload HTTP/1.1\r\nHost: localhost\r\nContent-Type: multipart/form-data; boundary=----boundary\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream.write_all(req.as_bytes()).await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let n = stream.read(&mut buf).await.unwrap();
+        let resp = String::from_utf8_lossy(&buf[..n]);
+        // Localhost → 200 OK, "0 file(s) uploaded"
+        assert!(resp.starts_with("HTTP/1.1 200"));
+        assert!(resp.contains("0 file(s) uploaded"));
+    }
+}

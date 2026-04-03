@@ -484,8 +484,10 @@ name = "pocket-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "http-body-util",
  "jni",
  "tokio",
+ "tower",
  "tower-http",
 ]
 
