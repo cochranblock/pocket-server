@@ -25,6 +25,6 @@ pub extern "C" fn pocket_server_ios_main(port: u16, site_dir: *const std::ffi::c
         .unwrap();
 
     rt.block_on(async {
-        crate::server::f9("Pocket Server".into(), "pocket-server".into(), port, s3, true).await;
+        crate::server::f9("Pocket Server".into(), "pocket-server".into(), port, s3, true, 50 * 1024 * 1024).await;
     });
 }

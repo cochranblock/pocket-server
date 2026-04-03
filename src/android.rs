@@ -62,7 +62,8 @@ pub extern "system" fn Java_org_cochranblock_pocketserver_PocketServer_startServ
                 s1,
                 s2: "pocket-server".into(),
                 s3,
-                s7: true, // quiet on Android (no stderr visible)
+                s7: true,  // quiet on Android (no stderr visible)
+                s8: 50 * 1024 * 1024, // 50 MB default on Android
             };
             let app = crate::server::f8(state);
             let addr = format!("0.0.0.0:{}", port);

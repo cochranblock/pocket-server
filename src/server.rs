@@ -34,6 +34,8 @@ pub struct t0 {
     pub s3: Option<PathBuf>,
     /// s7=quiet — suppress access log output
     pub s7: bool,
+    /// s8=max_upload — max upload size in bytes (0 = unlimited)
+    pub s8: u64,
 }
 
 /// f0=dashboard_page — kiosk dashboard, the phone screen shows this
@@ -194,6 +196,12 @@ async fn f6(
 
         match field.bytes().await {
             Ok(data) => {
+                if state.s8 > 0 && data.len() as u64 > state.s8 {
+                    return (
+                        StatusCode::PAYLOAD_TOO_LARGE,
+                        format!("file too large: {} bytes (max {})", data.len(), state.s8),
+                    );
+                }
                 if let Err(e) = tokio::fs::write(&dest, &data).await {
                     return (StatusCode::INTERNAL_SERVER_ERROR, format!("write error: {}", e));
                 }
@@ -360,13 +368,14 @@ pub fn f8(state: t0) -> Router {
 }
 
 /// f9=run — start the server on the given port, blocking. Shuts down on SIGINT/SIGTERM.
-pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>, quiet: bool) {
+pub async fn f9(s1: String, s2: String, port: u16, s3: Option<PathBuf>, quiet: bool, max_upload: u64) {
     let state = t0 {
         s0: Arc::new(t1::f10()),
         s1,
         s2,
         s3,
         s7: quiet,
+        s8: max_upload,
     };
     let app = f8(state);
     let addr = format!("0.0.0.0:{}", port);
@@ -428,6 +437,7 @@ mod tests {
                 None
             },
             s7: true, // quiet in tests
+            s8: 0,    // unlimited in tests
         }
     }
 
