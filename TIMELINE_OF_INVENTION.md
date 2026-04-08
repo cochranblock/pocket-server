@@ -4,6 +4,43 @@ Chronological record of every commit. Entries are immutable once pushed.
 
 ---
 
+## Human Revelations — Invented Techniques
+
+*Novel ideas that came from human insight, not AI suggestion. These are original contributions to the field.*
+
+### Phone-as-Web-Server (March 2026)
+
+**Invention:** A Rust web server compiled to a JNI shared library, loaded by an Android foreground service, that turns a phone into a production web server — serving user files, a live stats dashboard, and accepting file uploads, with optional Cloudflare tunnel for internet exposure.
+
+**The Problem:** Personal web hosting requires a computer that's always on, an ISP that allows incoming connections, a domain, and DNS configuration. Raspberry Pi servers exist but require setup, power, and network configuration. Everyone has a phone in their pocket with gigabit connectivity, but phones aren't web servers.
+
+**The Insight:** A phone has everything a web server needs: CPU, storage, network, and power (battery). Android allows foreground services with wake locks. Rust compiles to a shared library that Android loads via JNI. The phone is already always-on and always-connected. It just needs a web server binary — 1.04MB of Rust.
+
+**The Technique:**
+1. Rust cdylib compiled via cargo-ndk for arm64-v8a (Android) and armeabi-v7a
+2. JNI bridge: `startServer(port, siteDir)` — Java starts the Rust Axum server
+3. Foreground service with wake lock: server stays running when screen is off
+4. BootReceiver: auto-start server on device boot
+5. File serving: tower-http ServeDir from phone storage directory
+6. File upload: POST /api/upload with path traversal protection
+7. Stats dashboard: live-updating kiosk page polling /api/stats every 2s
+8. Cloudflare tunnel: optional `cloudflared tunnel --url` for internet exposure
+9. CLI binary for desktop: same Rust code, different entry point
+
+**Result:** A 737KB AAB turns any Android phone into a web server. Upload files from a laptop, serve them to the internet via Cloudflare tunnel. The phone in your pocket is the server.
+
+**Named:** Pocket Server
+**Commit:** `afde6a9` (initial scaffold), `112d588` (CLI + tunnel)
+**Origin:** The question: "What's the smallest possible web host?" Not a Raspberry Pi. Not a VPS. The phone that's already in your pocket, already powered on, already connected to the internet.
+
+### 2026-04-08 — Human Revelations Documentation Pass
+
+**What:** Documented novel human-invented techniques across the full CochranBlock portfolio. Added Human Revelations section with Phone-as-Web-Server.
+**Commit:** See git log
+**AI Role:** AI formatted and wrote the sections. Human identified which techniques were genuinely novel, provided the origin stories, and directed the documentation pass.
+
+---
+
 ## 2026-03-26 — Project Genesis
 
 | Hash | Description |
