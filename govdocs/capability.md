@@ -21,7 +21,7 @@ Zero-cloud architecture. 14 Unlicense repos. All products self-hosted on hardwar
 ## Technical Specifications
 
 - **Language:** Rust (compiled, memory-safe, no garbage collector)
-- **Binary size:** ~1 MB (stripped, LTO, size-optimized)
+- **Binary size:** ~1 MB (stripped, LTO, opt-level=z)
 - **Direct dependencies:** 3 (axum, tokio, tower-http)
 - **Transport compression:** zstd
 - **Architecture:** aarch64 (ARM64), armv7, iOS (staticlib)
