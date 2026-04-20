@@ -38,3 +38,15 @@ lto = true
 codegen-units = 1
 strip = true
 panic = "abort"
+
+[profile.diamond]
+inherits = "release"
+opt-level = 3              # maximum LLVM speed optimizations
+lto = "fat"                # cross-crate inlining, full monomorphized dedup
+codegen-units = 1          # one crystal, no fracture planes
+strip = true               # symbols don't run, they just ride along
+panic = "abort"            # cull unwinding machinery (-50-300 KB)
+overflow-checks = false    # trust the arithmetic, check explicitly when needed
+debug = false              # DWARF is heavy
+incremental = false        # incremental caches are fracture planes
+split-debuginfo = "off"    # no separate .dSYM or .pdb

@@ -1,6 +1,7 @@
 /target
 .DS_Store
 *.log
+!binary-sizes.log
 *.env
 android/.gradle
 android/build
