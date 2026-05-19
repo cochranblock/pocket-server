@@ -8,6 +8,7 @@ edition = "2024"
 description = "Your website lives on your phone. No hosting bill. Ever."
 license = "Unlicense"
 repository = "https://github.com/cochranblock/pocket-server"
+documentation = "https://cochranblock.github.io/pocket-server/"
 homepage = "https://cochranblock.org"
 keywords = ["web-server", "android", "static-site", "self-hosted", "phone"]
 categories = ["web-programming::http-server", "command-line-utilities"]

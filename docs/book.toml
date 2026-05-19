@@ -1,0 +1,20 @@
+[book]
+title = "pocket-server"
+description = "Compiled Rust web server for Android. No cloud, no monthly fees. Kiosk dashboard."
+authors = ["Michael Cochran"]
+language = "en"
+src = "src"
+
+[output.html]
+git-repository-url = "https://github.com/cochranblock/pocket-server"
+edit-url-template = "https://github.com/cochranblock/pocket-server/edit/main/docs/src/{path}"
+site-url = "/pocket-server/"
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/force-theme.js"]
+default-theme = "coal"
+preferred-dark-theme = "coal"
+no-section-label = true
+
+[output.html.fold]
+enable = true
+level = 1
